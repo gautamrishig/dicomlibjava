@@ -1,6 +1,6 @@
 package com.sidewinder.dicomreader.dicom.vr;
 
-public abstract class Value<E> {
+public abstract class Value {
 
 	// Value Representations identifiers
 	public static final int UNIDENTIFIED = -1;
@@ -67,7 +67,7 @@ public abstract class Value<E> {
 		{ "UT", "Unlimited Text" } };
 
 	private int type; // Type of VR (see VRFactory)
-	private E value;
+	private Object value;
 	private long length;
 	private long contentLength;
 
@@ -79,9 +79,13 @@ public abstract class Value<E> {
 	 * @param data Data to load in the current value.
 	 * @param contentLength Length of the actual data in the byte array.
 	 */
-	protected Value(int type, long length, byte[] data, long contentLength) {
+	protected Value(int type, byte[] data, long contentLength) {
 		this.type = type;
-		this.length = length;
+		this.length = getDicomLength(type);
+		if (contentLength > data.length) {
+			throw new IllegalArgumentException("Content length cannot be " +
+					"longer than the data array.");
+		}
 		this.contentLength = contentLength;
 		this.value = fromByteArray(data, contentLength);
 	}
@@ -119,7 +123,7 @@ public abstract class Value<E> {
 	 * Returns the value stored inside the class. 
 	 * @return value stored inside the class.
 	 */
-	public E getValue() {
+	public Object getValue() {
 		return value;
 	}
 
@@ -181,80 +185,20 @@ public abstract class Value<E> {
 			return null;
 		}
 	}
-
-	/**
-	 * Instantiate a new Value Representation of type CS, SH or LO. These three
-	 * Value Representations share the same implementation.
-	 * 
-	 * @param type Value Representation type identifier (CS, SH or LO)
-	 * @param length Length of the data.
-	 * @param data Data to load in the current value.
-	 * @param contentLength Length of the actual data in the byte array.
-	 * @return New Value containing a simple text string.
-	 * @throws IllegalArgumentException If the values passed as parameter
-	 * don't allow the creation of the object.
-	 */
-	private static Value<String> createStringValue(int type, byte[] data,
-			long contentLength) throws IllegalArgumentException {
-		StringValue result = null;
-		switch (type) {
-		case VR_CS:
-			result = new StringValue(type, StringValue.CS_LENGTH,
-					data, contentLength);
-			break;
-		case VR_SH:
-			result = new StringValue(type, StringValue.SH_LENGTH,
-					data, contentLength);
-			break;
-		case VR_LO:
-			result = new StringValue(type, StringValue.LO_LENGTH,
-					data, contentLength);
-			break;
-		}
-		
-		return result;
-	}
 	
-	private static Value<Long> createUnsignedValue(int type, byte[] data,
-			long contentLength) throws IllegalArgumentException {
-		UnsignedValue result = null;
-		switch (type) {
-		case VR_US:
-			result = new UnsignedValue(type, UnsignedValue.US_LENGTH,
-					data, contentLength);
-			break;
-		case VR_UL:
-			result = new UnsignedValue(type, UnsignedValue.UL_LENGTH,
-					data, contentLength);
-			break;
-		}
-		
-		return result;
-	}
-	
-	private static Value<String> createUniqueIdentifierValue(int type,
-			byte[] data, long contentLength) throws IllegalArgumentException {
-		return new UniqueIdentifierValue(type,
-				UniqueIdentifierValue.UI_LENGTH, data, contentLength);
-	}
-	
-	private static Value<String> createApplicationEntityValue(int type,
-			byte[] data, long contentLength) throws IllegalArgumentException {
-		return new ApplicationEntityValue(type,
-				ApplicationEntityValue.AE_LENGTH, data, contentLength);
-	}
-	
-	public static Value<?> createValue(int type, byte[] data,
+	public static Value createValue(int type, byte[] data,
 			long contentLength) throws IllegalArgumentException {
 		
 		if (StringValue.isCompatible(type)) {
-			return createStringValue(type, data, contentLength);
+			return new StringValue(type, data, contentLength);
 		} else if (UnsignedValue.isCompatible(type)){
-			return createUnsignedValue(type, data, contentLength);
+			return new UnsignedValue(type, data, contentLength);
 		} else if (UniqueIdentifierValue.isCompatible(type)) {
-			return createUniqueIdentifierValue(type, data, contentLength);
+			return new UniqueIdentifierValue(type, data, contentLength);
 		} else if (ApplicationEntityValue.isCompatible(type)) {
-			return createApplicationEntityValue(type, data, contentLength);
+			return new ApplicationEntityValue(type, data, contentLength);
+		} else if (DateTimeValue.isCompatible(type)){
+			return new DateTimeValue(type, data, contentLength);
 		} else {
 			throw new IllegalArgumentException(type + " is not a valid" +
 					" Value Representation Identifier.");
@@ -311,7 +255,7 @@ public abstract class Value<E> {
 	 * @throws IllegalArgumentException If the values passed as a parameter
 	 * are not suitable to perform the decode action.
 	 */
-	protected abstract E fromByteArray(byte[] data, long contentLength)
+	protected abstract Object fromByteArray(byte[] data, long contentLength)
 			throws IllegalArgumentException;
 
 	/**
@@ -322,5 +266,7 @@ public abstract class Value<E> {
 	 * @return String representation of the value of the class. 
 	 */
 	protected abstract String getStringValue();
+	
+	protected abstract long getDicomLength(int type);
 	
 }

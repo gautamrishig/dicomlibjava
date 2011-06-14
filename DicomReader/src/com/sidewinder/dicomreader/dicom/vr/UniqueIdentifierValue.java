@@ -1,12 +1,12 @@
 package com.sidewinder.dicomreader.dicom.vr;
 
-public class UniqueIdentifierValue extends Value<String> {
+public class UniqueIdentifierValue extends Value {
 	
 	public static final int UI_LENGTH = 64;
 	
-	protected UniqueIdentifierValue (int type, long length,
-			byte[] data, long contentLength) {
-		super(type, length, data, contentLength);
+	protected UniqueIdentifierValue (int type, byte[] data,
+			long contentLength) {
+		super(type, data, contentLength);
 	}
 
 	@Override
@@ -25,7 +25,17 @@ public class UniqueIdentifierValue extends Value<String> {
 
 	@Override
 	protected String getStringValue() {
-		return getValue();
+		return (String) getValue();
+	}
+	
+	@Override
+	protected long getDicomLength(int type) throws IllegalArgumentException {
+		if (type != Value.VR_UI) {
+			throw new IllegalArgumentException("Value Representation " +
+					type + " is not a valid UniqueIdentifierValue type.");
+		}
+		
+		return UI_LENGTH;
 	}
 
 	protected static boolean isCompatible(int type) {

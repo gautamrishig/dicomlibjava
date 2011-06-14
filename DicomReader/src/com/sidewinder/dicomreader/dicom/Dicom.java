@@ -6,7 +6,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 
 import com.sidewinder.dicomreader.dicom.tags.Tag;
 import com.sidewinder.dicomreader.dicom.vr.Value;
@@ -53,10 +52,10 @@ public class Dicom {
 		int dicomElementLength;
 		
 		Tag tag;
-		Value<?> value = null;
-		DicomElement<?> dicomElement = null;
+		Value value = null;
+		DicomElement dicomElement = null;
 		
-		for (int i = 0; i < 10; i++) {
+		while (bis.available() > 0) {
 			// Reading DICOM Tag and Value Representation info
 			bis.read(buffer.array(), buffer.position(), 8);
 			buffer.get(temp4);
@@ -65,7 +64,6 @@ public class Dicom {
 			// Reading Value Representation
 			buffer.get(temp4);
 			vr = Value.getVRIdentifier(new String(temp4, 0, 2));
-			System.out.println(vr);
 			
 			// Reading and storing data
 			if (Value.hasLongContent(vr)) {
@@ -78,11 +76,11 @@ public class Dicom {
 				dicomElementLength = DataMarshaller.getDicomUnsignedShort(temp4, 2);
 				bis.read(temp128, 0, dicomElementLength);
 				value = Value.createValue(vr, temp128, dicomElementLength);
-				System.out.println(value);
 			}
 			
 			// Composing DICOM Element
-			//dicomElement = new DicomElement(tag, value);
+			dicomElement = new DicomElement(tag, value);
+			System.out.println(dicomElement);
 			
 			buffer.clear();
 		}

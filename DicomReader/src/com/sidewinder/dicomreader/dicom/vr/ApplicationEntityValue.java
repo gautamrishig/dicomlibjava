@@ -1,11 +1,11 @@
 package com.sidewinder.dicomreader.dicom.vr;
 
-public class ApplicationEntityValue extends Value<String> {
+public class ApplicationEntityValue extends Value {
 	
 	public static final int AE_LENGTH = 16;
 	
-	protected ApplicationEntityValue(int type, long length, byte[] data, long contentLength) {
-		super(type, length, data, contentLength);
+	protected ApplicationEntityValue(int type, byte[] data, long contentLength) {
+		super(type, data, contentLength);
 	}
 
 	@Override
@@ -24,7 +24,17 @@ public class ApplicationEntityValue extends Value<String> {
 
 	@Override
 	protected String getStringValue() {
-		return getValue();
+		return (String) getValue();
+	}
+	
+	@Override
+	protected long getDicomLength(int type) {
+		if (type != Value.VR_AE) {
+			throw new IllegalArgumentException("Value Representation " +
+					type + " is not a valid ApplicationEntityValue type.");
+		}
+		
+		return AE_LENGTH;
 	}
 
 	protected static boolean isCompatible(int type) {

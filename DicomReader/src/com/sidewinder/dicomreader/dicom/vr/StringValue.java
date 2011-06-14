@@ -6,14 +6,14 @@ package com.sidewinder.dicomreader.dicom.vr;
  * @author sidewinder
  *
  */
-public class StringValue extends Value<String> {
+public class StringValue extends Value {
 	
 	public static final int CS_LENGTH = 16;
 	public static final int SH_LENGTH = 16;
 	public static final int LO_LENGTH = 64;
 	
-	protected StringValue(int type, long length, byte[] data, long contentLength) {
-		super(type, length, data, contentLength);
+	protected StringValue(int type, byte[] data, long contentLength) {
+		super(type, data, contentLength);
 	}
 	
 	@Override
@@ -32,7 +32,22 @@ public class StringValue extends Value<String> {
 
 	@Override
 	protected String getStringValue() {
-		return getValue();
+		return (String) getValue();
+	}
+	
+	@Override
+	protected long getDicomLength(int type) throws IllegalArgumentException {
+		switch (type) {
+		case Value.VR_CS:
+			return CS_LENGTH;
+		case Value.VR_SH:
+			return SH_LENGTH;
+		case Value.VR_LO:
+			return LO_LENGTH;
+		default:
+			throw new IllegalArgumentException("Value Representation " +
+					type + " is not a valid StringValue type.");
+		}
 	}
 	
 	protected static boolean isCompatible(int type) {
