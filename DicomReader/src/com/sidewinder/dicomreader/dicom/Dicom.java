@@ -44,7 +44,6 @@ public class Dicom {
 	private void parseExplicit(BufferedInputStream bis)
 			throws IOException {
 		byte[] temp4 = new byte[4];
-		byte[] temp2 = new byte[2];
 		byte[] temp128 = new byte[128];
 		
 		ByteBuffer buffer = ByteBuffer.allocate(READ_BUFFER_SIZE);
@@ -53,7 +52,7 @@ public class Dicom {
 		
 		Tag tag;
 		Value value = null;
-		DicomElement dicomElement = null;
+		NormalDicomElement dicomElement = null;
 		
 		while (bis.available() > 0) {
 			// Reading DICOM Tag and Value Representation info
@@ -70,7 +69,16 @@ public class Dicom {
 				bis.read(temp4);
 				// Reading the length of the element
 				dicomElementLength = (int) DataMarshaller.getDicomUnsignedLong(temp4);
-				bis.skip(dicomElementLength); //TODO: replace the skip with the actual reading of the file
+				
+				if (dicomElementLength > 128) {
+					bis.read(temp128);
+					value = Value.createValue(vr, temp128, 128); // TODO: think about a special version of Value for the longer elements
+					bis.skip(dicomElementLength - 128);
+				} else {
+					bis.read(temp128, 0, dicomElementLength);
+					value = Value.createValue(vr, temp128, dicomElementLength); // TODO: think about a special version of Value for the longer elements
+				}
+				
 			} else {
 				// Reading the length of the element
 				dicomElementLength = DataMarshaller.getDicomUnsignedShort(temp4, 2);
@@ -79,7 +87,7 @@ public class Dicom {
 			}
 			
 			// Composing DICOM Element
-			dicomElement = new DicomElement(tag, value);
+			dicomElement = new NormalDicomElement(tag, value);
 			System.out.println(dicomElement);
 			
 			buffer.clear();

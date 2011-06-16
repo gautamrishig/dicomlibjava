@@ -3,12 +3,12 @@ package com.sidewinder.dicomreader.dicom;
 import com.sidewinder.dicomreader.dicom.tags.Tag;
 import com.sidewinder.dicomreader.dicom.vr.Value;
 
-public class DicomElement {
-
+public class NormalDicomElement {
+	
 	private Tag tag;
 	private Value value;
 	
-	public DicomElement(Tag tag, Value value) {
+	public NormalDicomElement(Tag tag, Value value) {
 		this.tag = tag;
 		this.value = value;
 	}

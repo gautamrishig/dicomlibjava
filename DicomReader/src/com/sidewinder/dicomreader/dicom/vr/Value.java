@@ -233,9 +233,10 @@ public abstract class Value {
 	 * be over 128 bytes
 	 */
 	public static boolean hasLongContent(int type) {
-		if (type == Value.VR_OF || type == Value.VR_OB ||
-				type == Value.VR_OW || type == Value.VR_SQ ||
-				type == Value.VR_UN) {
+		if (type == Value.VR_LT || type == Value.VR_OF ||
+				type == Value.VR_OB || type == Value.VR_OW ||
+				type == Value.VR_ST || type == Value.VR_SQ ||
+				type == Value.VR_UN || type == Value.VR_UT) {
 			return true;
 		} else {
 			return false;
