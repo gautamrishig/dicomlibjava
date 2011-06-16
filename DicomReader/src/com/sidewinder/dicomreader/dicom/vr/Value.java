@@ -203,6 +203,8 @@ public abstract class Value {
 			return new OtherByteValue(type, data, contentLength);
 		} else if (TextValue.isCompatible(type)) {
 			return new TextValue(type, data, contentLength);
+		} else if (PersonNameValue.isCompatible(type)){
+			return new PersonNameValue(type, data, contentLength);
 		} else {
 			throw new IllegalArgumentException(type + " is not a valid" +
 					" Value Representation Identifier.");
