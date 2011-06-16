@@ -51,10 +51,12 @@ public class StringValue extends Value {
 	}
 	
 	protected static boolean isCompatible(int type) {
-		if (type == Value.VR_CS || type == Value.VR_SH ||
-				type == Value.VR_LO) {
+		switch (type) {
+		case Value.VR_CS:
+		case Value.VR_SH:
+		case Value.VR_LO:
 			return true;
-		} else {
+		default:
 			return false;
 		}
 	}

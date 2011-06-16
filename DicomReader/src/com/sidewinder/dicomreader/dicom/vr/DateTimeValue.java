@@ -159,10 +159,12 @@ public class DateTimeValue extends Value {
 	}
 
 	protected static boolean isCompatible(int type) {
-		if (type == Value.VR_DA || type == Value.VR_DT ||
-				type == Value.VR_TM) {
+		switch (type) {
+		case Value.VR_DA:
+		case Value.VR_DT:
+		case Value.VR_TM:
 			return true;
-		} else {
+		default:
 			return false;
 		}
 	}

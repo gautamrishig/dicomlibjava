@@ -39,4 +39,14 @@ public class TextValue extends Value {
 		}
 	}
 
+	protected static boolean isCompatible(int type) {
+		switch (type) {
+		case Value.VR_ST:
+		case Value.VR_LT:
+		case Value.VR_UT:
+			return true;
+		default:
+			return false;
+		}
+	}
 }

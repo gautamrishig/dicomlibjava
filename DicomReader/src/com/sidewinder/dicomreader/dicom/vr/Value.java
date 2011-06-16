@@ -133,7 +133,7 @@ public abstract class Value {
 	 * can be a maximum length or a mandatory length.
 	 * 
 	 * @return Value Representation length (in bytes) as described in the DICOM
-	 * standard.
+	 * standard. -1 if the standard does not prescribe any length.
 	 */
 	public long getLength() {
 		return length;
@@ -199,6 +199,10 @@ public abstract class Value {
 			return new ApplicationEntityValue(type, data, contentLength);
 		} else if (DateTimeValue.isCompatible(type)){
 			return new DateTimeValue(type, data, contentLength);
+		} else if (OtherByteValue.isCompatible(type)) {
+			return new OtherByteValue(type, data, contentLength);
+		} else if (TextValue.isCompatible(type)) {
+			return new TextValue(type, data, contentLength);
 		} else {
 			throw new IllegalArgumentException(type + " is not a valid" +
 					" Value Representation Identifier.");
@@ -233,12 +237,39 @@ public abstract class Value {
 	 * be over 128 bytes
 	 */
 	public static boolean hasLongContent(int type) {
-		if (type == Value.VR_LT || type == Value.VR_OF ||
-				type == Value.VR_OB || type == Value.VR_OW ||
-				type == Value.VR_ST || type == Value.VR_SQ ||
-				type == Value.VR_UN || type == Value.VR_UT) {
+		switch (type) {
+		case Value.VR_LT:
+		case Value.VR_OF:
+		case Value.VR_OB:
+		case Value.VR_OW:
+		case Value.VR_ST:
+		case Value.VR_SQ:
+		case Value.VR_UN:
+		case Value.VR_UT:
 			return true;
-		} else {
+		default:
+			return false;
+		}
+	}
+	
+	/**
+	 * Checks if the identifier passed as a parameter corresponds to a
+	 * Value Representation uses a 4 byte length in Explicit mode.
+	 * 
+	 * @param type Value Representation type to check
+	 * @return True if the content of the current Value Representation uses
+	 * 4 bytes to represent its length when in Explicit mode
+	 */
+	public static boolean has4BytesLength(int type) {
+		switch (type) {
+		case Value.VR_OF:
+		case Value.VR_OB:
+		case Value.VR_OW:
+		case Value.VR_SQ:
+		case Value.VR_UN:
+		case Value.VR_UT:
+			return true;
+		default:
 			return false;
 		}
 	}

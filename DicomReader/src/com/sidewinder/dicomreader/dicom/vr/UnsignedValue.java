@@ -35,9 +35,11 @@ public class UnsignedValue extends Value {
 	}
 
 	protected static boolean isCompatible(int type) {
-		if (type == Value.VR_US || type == Value.VR_UL) {
+		switch (type) {
+		case Value.VR_US:
+		case Value.VR_UL:
 			return true;
-		} else {
+		default:
 			return false;
 		}
 	}

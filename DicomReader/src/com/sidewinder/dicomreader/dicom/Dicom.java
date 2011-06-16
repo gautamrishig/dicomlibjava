@@ -7,6 +7,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import com.sidewinder.dicomreader.dicom.dicomelement.DicomElement;
+import com.sidewinder.dicomreader.dicom.dicomelement.NormalDicomElement;
 import com.sidewinder.dicomreader.dicom.tags.Tag;
 import com.sidewinder.dicomreader.dicom.vr.Value;
 import com.sidewinder.dicomreader.util.DataMarshaller;
@@ -52,7 +54,7 @@ public class Dicom {
 		
 		Tag tag;
 		Value value = null;
-		NormalDicomElement dicomElement = null;
+		DicomElement dicomElement = null;
 		
 		while (bis.available() > 0) {
 			// Reading DICOM Tag and Value Representation info
@@ -66,17 +68,31 @@ public class Dicom {
 			
 			// Reading and storing data
 			if (Value.hasLongContent(vr)) {
-				bis.read(temp4);
-				// Reading the length of the element
-				dicomElementLength = (int) DataMarshaller.getDicomUnsignedLong(temp4);
+				
+				if (Value.has4BytesLength(vr)) {
+					// Reading the length of the element (4 bytes length)
+					bis.read(temp4);
+					dicomElementLength = 
+						(int) DataMarshaller.getDicomUnsignedLong(temp4);
+				} else {
+					// Reading the length of the element (2 bytes length)
+					dicomElementLength =
+						DataMarshaller.getDicomUnsignedShort(temp4, 2);
+				}
 				
 				if (dicomElementLength > 128) {
 					bis.read(temp128);
-					value = Value.createValue(vr, temp128, 128); // TODO: think about a special version of Value for the longer elements
+					value = Value.createValue(vr, temp128, 128);
 					bis.skip(dicomElementLength - 128);
+					// Composing DICOM Element
+					System.out.println("preview");
+					dicomElement = DicomElement.createPreviewDicomElement(tag,
+							value, 0, dicomElementLength); //TODO: change with the correct value instead of 0 for the file position!!
 				} else {
 					bis.read(temp128, 0, dicomElementLength);
-					value = Value.createValue(vr, temp128, dicomElementLength); // TODO: think about a special version of Value for the longer elements
+					value = Value.createValue(vr, temp128, dicomElementLength);
+					// Composing DICOM Element
+					dicomElement = DicomElement.createNormalDicomElement(tag, value);
 				}
 				
 			} else {
@@ -84,10 +100,10 @@ public class Dicom {
 				dicomElementLength = DataMarshaller.getDicomUnsignedShort(temp4, 2);
 				bis.read(temp128, 0, dicomElementLength);
 				value = Value.createValue(vr, temp128, dicomElementLength);
+				// Composing DICOM Element
+				dicomElement = DicomElement.createNormalDicomElement(tag, value);
 			}
 			
-			// Composing DICOM Element
-			dicomElement = new NormalDicomElement(tag, value);
 			System.out.println(dicomElement);
 			
 			buffer.clear();
