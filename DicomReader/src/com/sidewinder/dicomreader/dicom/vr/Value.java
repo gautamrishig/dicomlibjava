@@ -1,5 +1,9 @@
 package com.sidewinder.dicomreader.dicom.vr;
 
+import java.util.List;
+
+import com.sidewinder.dicomreader.dicom.DicomObject;
+
 public abstract class Value {
 
 	// Value Representations identifiers
@@ -75,7 +79,6 @@ public abstract class Value {
 	 * Instantiate a new Value Representation.
 	 * 
 	 * @param type Value Representation type identifier.
-	 * @param length Length of the data.
 	 * @param data Data to load in the current value.
 	 * @param contentLength Length of the actual data in the byte array.
 	 */
@@ -88,6 +91,20 @@ public abstract class Value {
 		}
 		this.contentLength = contentLength;
 		this.value = fromByteArray(data, contentLength);
+	}
+	
+	/**
+	 * Instantiate a new Value Representation.
+	 * 
+	 * @param type Value Representation type identifier.
+	 * @param value Value to load in the current value.
+	 * @param contentLength Length of the actual data in the byte array.
+	 */
+	protected Value(int type, Object value, long contentLength) {
+		this.type = type;
+		this.length = getDicomLength(type);
+		this.contentLength = contentLength;
+		this.value = value;
 	}
 
 	/**
@@ -205,10 +222,26 @@ public abstract class Value {
 			return new TextValue(type, data, contentLength);
 		} else if (PersonNameValue.isCompatible(type)){
 			return new PersonNameValue(type, data, contentLength);
+		} else if (AgeStringValue.isCompatible(type)) {
+			return new AgeStringValue(type, data, contentLength);
+		} else if (NumericStringValue.isCompatible(type)) {
+			return new NumericStringValue(type, data, contentLength);
 		} else {
 			throw new IllegalArgumentException(type + " is not a valid" +
 					" Value Representation Identifier.");
 		}
+	}
+	
+	public static SequenceValue createContainerValue(
+			List<DicomObject> elements, long contentLength)
+			throws IllegalArgumentException {
+		
+		if (elements == null) {
+			throw new IllegalArgumentException("SQ Value Representations " +
+					"cannot contain a null list.");
+		}
+		
+		return new SequenceValue(elements, contentLength);
 	}
 
 	/**
@@ -274,6 +307,18 @@ public abstract class Value {
 		default:
 			return false;
 		}
+	}
+	
+	/**
+	 * Checks if the identifier passed as a parameter corresponds to a
+	 * container Value Representation
+	 * 
+	 * @param type Value Representation type to check
+	 * @return True if the content of the current Value Representation is of
+	 * type VR_SQ
+	 */
+	public static boolean isContainerElement(int type) {
+		return type == Value.VR_SQ;
 	}
 
 	/**

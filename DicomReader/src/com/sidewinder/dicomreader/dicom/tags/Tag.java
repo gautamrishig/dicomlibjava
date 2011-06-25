@@ -3,7 +3,15 @@ package com.sidewinder.dicomreader.dicom.tags;
 import com.sidewinder.dicomreader.util.DataMarshaller;
 
 
-public class Tag {
+public class Tag implements Comparable<Tag> {
+	
+	private static Tag dicomObjectStart = null;
+	private static Tag dicomObjectEnd = null;
+	
+	private static final byte[] DICOM_OBJECT_START_BYTE =
+		{(byte)0xFE, (byte)0xFF, (byte)0x00, (byte)0xE0};
+	private static final byte[] DICOM_OBJECT_END_BYTE =
+		{(byte)0xFE, (byte)0xFF, (byte)0x0D, (byte)0xE0};
 	
 	public static final int TAG_BYTE_LENGTH = 4;
 	
@@ -11,7 +19,7 @@ public class Tag {
 		'6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 	
 	private static int GROUP = 0;
-	private static int ELEMENT = 1;
+	private static int ELEMENT = 2;
 	
 	private int group;
 	private int element;
@@ -48,11 +56,51 @@ public class Tag {
 		return new String(temp);
 	}
 	
+	public boolean isDicomObjectStart() {
+		if (dicomObjectStart == null) {
+			dicomObjectStart = new Tag(DICOM_OBJECT_START_BYTE);
+		}
+		
+		return this.equals(dicomObjectStart);
+	}
+	
+	public boolean isDicomObjectEnd() {
+		if (dicomObjectEnd == null) {
+			dicomObjectEnd = new Tag(DICOM_OBJECT_END_BYTE);
+		}
+		
+		return this.equals(dicomObjectEnd);
+	}
+	
 	@Override
 	public String toString() {
 		StringBuilder out = new StringBuilder("(");
 		out.append(groupString).append(",").append(elementString).append(")");
 		return out.toString();
 	}
+	
+	@Override
+	public boolean equals(Object o) {
+		if (!(o instanceof Tag)) {
+			return false;
+		}
+		
+		Tag otherTag = (Tag) o;
+		
+		if (element != otherTag.getElement()) {
+			return false;
+		} else {
+			return group == otherTag.getGroup();
+		}
+	}
 
+	public int compareTo(Tag otherTag) {
+		int groupDifference = group - otherTag.getGroup();
+		
+		if (groupDifference != 0) {
+			return groupDifference;
+		}
+		
+		return element - otherTag.getElement();
+	}
 }
