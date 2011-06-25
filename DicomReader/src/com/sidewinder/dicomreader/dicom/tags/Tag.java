@@ -8,10 +8,15 @@ public class Tag implements Comparable<Tag> {
 	private static Tag dicomObjectStart = null;
 	private static Tag dicomObjectEnd = null;
 	
+	private static Tag dicomElementEnd = null;
+	
 	private static final byte[] DICOM_OBJECT_START_BYTE =
 		{(byte)0xFE, (byte)0xFF, (byte)0x00, (byte)0xE0};
 	private static final byte[] DICOM_OBJECT_END_BYTE =
 		{(byte)0xFE, (byte)0xFF, (byte)0x0D, (byte)0xE0};
+	
+	private static final byte[] DICOM_ELEMENT_END_BYTE =
+		{(byte)0xFE, (byte)0xFF, (byte)0xDD, (byte)0xE0};
 	
 	public static final int TAG_BYTE_LENGTH = 4;
 	
@@ -29,8 +34,8 @@ public class Tag implements Comparable<Tag> {
 	
 	public Tag(byte[] data) {
 		// Store in int format
-		group = DataMarshaller.getDicomUnsignedShort(data, 0);
-		group = DataMarshaller.getDicomUnsignedShort(data, 2);
+		group = DataMarshaller.getDicomUnsignedShort(data, GROUP);
+		element = DataMarshaller.getDicomUnsignedShort(data, ELEMENT);
 		
 		// Store in String format
 		groupString = tagToHex(data, GROUP);
@@ -70,6 +75,14 @@ public class Tag implements Comparable<Tag> {
 		}
 		
 		return this.equals(dicomObjectEnd);
+	}
+	
+	public boolean isDicomElementEnd() {
+		if (dicomElementEnd == null) {
+			dicomElementEnd = new Tag(DICOM_ELEMENT_END_BYTE);
+		}
+		
+		return this.equals(dicomElementEnd);
 	}
 	
 	@Override
