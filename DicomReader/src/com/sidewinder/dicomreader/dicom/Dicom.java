@@ -20,6 +20,8 @@ public class Dicom {
 	private File dicomFile;
 	private boolean isExplicit;
 	
+	private static int currentPos = 0;
+	
 	public Dicom(String file) {	
 		dicomFile = new File(file);
 		if (dicomFile.exists()) {
@@ -33,6 +35,7 @@ public class Dicom {
 					new FileInputStream(file));
 			// Skipping first 128 bytes and DICM string
 			bis.skip(132);
+			currentPos += 132;
 
 			parseExplicit(bis, -1, 0); //TODO: Remember to use the return element!!!
 
@@ -44,23 +47,25 @@ public class Dicom {
 	}
 
 	private List<DicomObject> parseExplicit(BufferedInputStream bis,
-			long maxBytesToRead, long currentPos) throws IOException {
+			long maxBytesToRead, long startingByte) throws IOException {
 		List<DicomElement> dicomElementList = new ArrayList<DicomElement>();
 		List<DicomObject> dicomObjectList = new ArrayList<DicomObject>();
+		byte[] temp2 = new byte[2];
 		byte[] temp4 = new byte[4];
 		byte[] temp128 = new byte[128];
 		
 		int vr;
 		int dicomElementLength;
-		long readBytes = 0;
 		
 		Tag tag;
 		Value value = null;
 		DicomElement dicomElement = null;
 		
-		while (bis.available() > 0 || readBytes == maxBytesToRead) {
+		while (bis.available() > 0 &&
+				currentPos - startingByte != maxBytesToRead) {
 			// Reading DICOM Tag and Value Representation info
-			readBytes += bis.read(temp4);
+			System.out.println(currentPos);
+			currentPos += bis.read(temp4);
 			tag = new Tag(temp4);
 			
 			// Create a new DicomObject and add it to the list, plus reset
@@ -70,13 +75,13 @@ public class Dicom {
 				dicomElementList = new ArrayList<DicomElement>();
 				
 				// Read residual element length and new tag
-				readBytes += bis.read(temp4);
-				readBytes += bis.read(temp4);
+				currentPos += bis.read(temp4);
+				currentPos += bis.read(temp4);
 				tag = new Tag(temp4);
 			}
 
 			// Reading Value Representation
-			readBytes += bis.read(temp4);
+			currentPos += bis.read(temp4);
 			vr = Value.getVRIdentifier(new String(temp4, 0, 2));
 			
 			// Reading and storing data
@@ -84,7 +89,7 @@ public class Dicom {
 				
 				if (Value.has4BytesLength(vr)) {
 					// Reading the length of the element (4 bytes length)
-					readBytes += bis.read(temp4);
+					currentPos += bis.read(temp4);
 					dicomElementLength = 
 						(int) DataMarshaller.getDicomUnsignedLong(temp4);
 				} else {
@@ -92,19 +97,21 @@ public class Dicom {
 					dicomElementLength =
 						DataMarshaller.getDicomUnsignedShort(temp4, 2);
 				}
+				//dicomElementLength = getDicomElementLength(bis, vr);
 				
 				if (Value.isContainerElement(vr)) {
 					System.out.println("Container");
 					// Extracting the Delimitation Item
-					readBytes += bis.read(temp4); // TODO: Now it's ignored, should I do something with it? Like a sanity check? 
+					currentPos += bis.read(temp4); // TODO: Now it's ignored, should I do something with it? Like a sanity check? 
 					// Getting residual SQ length
-					readBytes += bis.read(temp4);
+					currentPos += bis.read(temp4);
 					dicomElementLength =
 						(int) DataMarshaller.getDicomUnsignedLong(temp4);
 					List<DicomObject> sqContent = parseExplicit(bis,
-							dicomElementLength, readBytes);
+							dicomElementLength, currentPos);
 					value = Value.createContainerValue(sqContent, dicomElementLength);
 					dicomElement = DicomElement.createNormalDicomElement(tag, value);
+					continue;
 				} else if (dicomElementLength > 128) {
 					bis.read(temp128);
 					value = Value.createValue(vr, temp128, 128);
@@ -112,10 +119,10 @@ public class Dicom {
 					// Composing DICOM Element
 					System.out.println("preview");
 					dicomElement = DicomElement.createPreviewDicomElement(tag,
-							value, currentPos + readBytes, dicomElementLength);
-					readBytes += dicomElementLength;
+							value, currentPos + currentPos, dicomElementLength);
+					currentPos += dicomElementLength;
 				} else {
-					readBytes += bis.read(temp128, 0, dicomElementLength);
+					currentPos += bis.read(temp128, 0, dicomElementLength);
 					value = Value.createValue(vr, temp128, dicomElementLength);
 					// Composing DICOM Element
 					dicomElement = 
@@ -126,7 +133,7 @@ public class Dicom {
 				// Reading the length of the element
 				dicomElementLength = 
 					DataMarshaller.getDicomUnsignedShort(temp4, 2);
-				readBytes += bis.read(temp128, 0, dicomElementLength);
+				currentPos += bis.read(temp128, 0, dicomElementLength);
 				value = Value.createValue(vr, temp128, dicomElementLength);
 				// Composing DICOM Element
 				dicomElement = 
@@ -137,8 +144,21 @@ public class Dicom {
 			dicomElementList.add(dicomElement);
 		}
 		
+		System.out.println("Exiting container");
 		dicomObjectList.add(new DicomObject(dicomElementList));
 		return dicomObjectList;
 	}
 
+	private int getDicomElementLength(BufferedInputStream bis, int type) 
+			throws IOException {
+		byte[] temp4 = new byte[4];
+		if (Value.has4BytesLength(type)) {
+			// Reading the length of the element (4 bytes length)
+			currentPos += bis.read(temp4);
+			return	(int) DataMarshaller.getDicomUnsignedLong(temp4);
+		} else {
+			// Reading the length of the element (2 bytes length)
+			return DataMarshaller.getDicomUnsignedShort(temp4, 2);
+		}
+	}
 }
