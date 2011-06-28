@@ -216,8 +216,8 @@ public abstract class Value {
 			return new ApplicationEntityValue(type, data, contentLength);
 		} else if (DateTimeValue.isCompatible(type)){
 			return new DateTimeValue(type, data, contentLength);
-		} else if (OtherByteValue.isCompatible(type)) {
-			return new OtherByteValue(type, data, contentLength);
+		} else if (OtherValue.isCompatible(type)) {
+			return new OtherValue(type, data, contentLength);
 		} else if (TextValue.isCompatible(type)) {
 			return new TextValue(type, data, contentLength);
 		} else if (PersonNameValue.isCompatible(type)){
