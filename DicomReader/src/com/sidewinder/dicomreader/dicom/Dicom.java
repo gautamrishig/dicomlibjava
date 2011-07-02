@@ -17,6 +17,8 @@ public class Dicom {
 	
 	private static final int IMPLICIT_LENGTH = 0xFFFFFFFF & 0xFFFFFFFF;
 	
+	private static final int MAX_CACHED_BYTES = 128;
+	
 	private DicomObject dicomObject;
 	
 	private File dicomFile;
@@ -41,9 +43,10 @@ public class Dicom {
 			bis.skip(132);
 			currentPos += 132;
 
-			List<DicomObject> list = parseExplicit(-1, 0); //TODO: Remember to use the return element!!!
+			// Old version...
+			//List<DicomObject> list = parseExplicit(-1, 0);
 			
-			System.out.println("Got " + list.size() + " DicomObjects");
+			parseDicomObject(0);
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -51,7 +54,116 @@ public class Dicom {
 			e.printStackTrace();
 		}
 	}
+	
+	
+	private DicomObject parseDicomObject(int dicomObjectLength) throws IOException {
+		int type;
+		long elementLength;
+		Tag tag;
+		List<DicomElement> dicomElementList = new ArrayList<DicomElement>();
+		
+		// Read tag (4 bytes)
+		tag = readTag();
+		
+		while (bis.available() > 0) {
+			type = readValueRepresentation();
+			elementLength = readContentLength(type);
+			
+			if (type == Value.VR_SQ) {
+				// Manage the container
+			} else {
+				// Manage a normal element
+				if (elementLength > MAX_CACHED_BYTES) {
+					// Preview
+				} else {
+					// Complete
+				}
+			}
+		}
+		
+		return new DicomObject(dicomElementList);
+	}
+	
+	private Value readElement(int type, long elementLength) 
+			throws IOException {
+		byte[] temp128 = new byte[MAX_CACHED_BYTES];
+		
+		
+		
+		return null;
+	}
+	
+	private long readContentLength(int type) throws IOException {
+		byte[] temp2 = new byte[2];
+		byte[] temp4 = new byte[4];
+		long elementLength;
+		
+		if (Value.has4BytesLength(type)) {
+			// Skipping the remaining bytes from of the
+			// Value Representation word
+			currentPos += bis.skip(2);
+			// Reading element length
+			readBytes(temp4);
+			elementLength = DataMarshaller.getDicomUnsignedLong(temp4);
+			// Check if Length is implicit. If so, compute the element's length
+			if (elementLength == IMPLICIT_LENGTH) {
+				elementLength = computeLength();
+			}
+			return elementLength;
+		} else {
+			readBytes(temp2);
+			return DataMarshaller.getDicomUnsignedShort(temp2);
+		}
+	}
+	
+	private int readValueRepresentation() throws IOException {
+		byte[] temp2 = new byte[2];
+		
+		readBytes(temp2);
+		return Value.getVRIdentifier(new String(temp2));
+	}
+	
+	private Tag readTag() throws IOException {
+		byte[] temp4 = new byte[4];
+		
+		readBytes(temp4);
+		return new Tag(temp4);
+	}
+	
+	private void readBytes(byte[] buffer) throws IOException {
+		currentPos += bis.read(buffer);
+	}
+	
+	private void skip(long toSkip) throws IOException {
+		long skipped;
+		
+		while (toSkip > 0) {
+			skipped = bis.skip(toSkip);
+			if (skipped < 0) {
+				throw new IOException("Error skipping bytes.");
+			}
+			
+			toSkip -= skipped;
+		}
+	}
 
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	private List<DicomObject> parseExplicit(long maxBytesToRead,
 			long startingByte) throws IOException {
 		List<DicomElement> dicomElementList = new ArrayList<DicomElement>();
@@ -70,7 +182,6 @@ public class Dicom {
 		while (bis.available() > 0 &&
 				currentPos - startingByte != maxBytesToRead) {
 			// Reading DICOM Tag and Value Representation info
-			System.out.println(currentPos);
 			readBytes(temp4);
 			tag = new Tag(temp4);
 			
@@ -103,18 +214,16 @@ public class Dicom {
 					// Reading start tag
 					readBytes(temp4); // TODO: Now it's ignored, should I do something with it? Like a sanity check?
 					dicomElementLength = computeLength();
-					System.out.println(dicomElementLength);
-					System.out.println(currentPos);
 				}
 				
 				if (Value.isContainerElement(vr)) {
-					System.out.println("Container");
+					System.out.println("Container (" + currentPos + ")");
 					// Extracting the Delimitation Item
 					readBytes(temp4); // TODO: Now it's ignored, should I do something with it? Like a sanity check? 
 					// Getting residual SQ length
-					readBytes(temp4);
-					dicomElementLength =
-						(int) DataMarshaller.getDicomUnsignedLong(temp4);
+					readBytes(temp4); //TODO: this is only the length of the single dicomobject, not the whole SQ element!!!!
+					dicomElementLength = (int) DataMarshaller.getDicomUnsignedLong(temp4);
+					System.out.println("\tContainer length: " + dicomElementLength);
 					List<DicomObject> sqContent = parseExplicit(
 							dicomElementLength, currentPos);
 					value = Value.createContainerValue(sqContent, dicomElementLength);
@@ -154,18 +263,13 @@ public class Dicom {
 					DicomElement.createNormalDicomElement(tag, value);
 			}
 			
-			System.out.println(dicomElement);
+			//System.out.println(dicomElement);
 			dicomElementList.add(dicomElement);
 		}
 		
-		System.out.println("Exiting container");
+		System.out.println("Exiting container (" + currentPos + ")");
 		dicomObjectList.add(new DicomObject(dicomElementList));
 		return dicomObjectList;
-	}
-	
-	private void readBytes(byte[] buffer)
-			throws IOException {
-		currentPos += bis.read(buffer);
 	}
 	
 	private void readBytes(byte[] buffer, int length)

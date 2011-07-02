@@ -8,7 +8,7 @@ public class DicomObject {
 
 	private List<DicomElement> dicomElements;
 	
-	protected DicomObject(List<DicomElement> dicomElements) {
+	protected DicomObject(List<DicomElement> dicomElementList) {
 		this.dicomElements = dicomElements;
 	}
 }

@@ -317,6 +317,7 @@ public abstract class Value {
 	 * @return True if the content of the current Value Representation is of
 	 * type VR_SQ
 	 */
+	@Deprecated
 	public static boolean isContainerElement(int type) {
 		return type == Value.VR_SQ;
 	}
