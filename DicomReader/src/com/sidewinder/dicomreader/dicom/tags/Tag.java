@@ -5,17 +5,23 @@ import com.sidewinder.dicomreader.util.DataMarshaller;
 
 public class Tag implements Comparable<Tag> {
 	
-	private static Tag dicomObjectStart = null;
-	private static Tag dicomObjectEnd = null;
+	public static int ITEM_TAG = 0xFFFEE000 & 0xFFFFFFFF;
+	public static int ITEM_DELIMITATION_TAG = 0xFFFEE00D & 0xFFFFFFFF;
+	public static int SEQUENCE_DELIMITATION_TAG = 0xFFFEE0DD & 0xFFFFFFFF;
 	
-	private static Tag dicomElementEnd = null;
+	private static Tag itemTag = null;
 	
-	private static final byte[] DICOM_OBJECT_START_BYTE =
+	private static Tag itemDelimitationTag = null;
+	
+	private static Tag sequenceDelimitationTag = null;
+	
+	private static final byte[] ITEM_TAG_BYTES =
 		{(byte)0xFE, (byte)0xFF, (byte)0x00, (byte)0xE0};
-	private static final byte[] DICOM_OBJECT_END_BYTE =
+	
+	private static final byte[] ITEM_DELIMITATION_TAG_BYTES =
 		{(byte)0xFE, (byte)0xFF, (byte)0x0D, (byte)0xE0};
 	
-	private static final byte[] DICOM_ELEMENT_END_BYTE =
+	private static final byte[] SEQUENCE_DELIMITATION_TAG_BYTES =
 		{(byte)0xFE, (byte)0xFF, (byte)0xDD, (byte)0xE0};
 	
 	public static final int TAG_BYTE_LENGTH = 4;
@@ -61,28 +67,28 @@ public class Tag implements Comparable<Tag> {
 		return new String(temp);
 	}
 	
-	public boolean isDicomObjectStart() {
-		if (dicomObjectStart == null) {
-			dicomObjectStart = new Tag(DICOM_OBJECT_START_BYTE);
+	public boolean isItemTag() {
+		if (itemTag == null) {
+			itemTag = new Tag(ITEM_TAG_BYTES);
 		}
 		
-		return this.equals(dicomObjectStart);
+		return this.equals(itemTag);
 	}
 	
-	public boolean isDicomObjectEnd() {
-		if (dicomObjectEnd == null) {
-			dicomObjectEnd = new Tag(DICOM_OBJECT_END_BYTE);
+	public boolean isItemDelimitationTag() {
+		if (itemDelimitationTag == null) {
+			itemDelimitationTag = new Tag(ITEM_DELIMITATION_TAG_BYTES);
 		}
 		
-		return this.equals(dicomObjectEnd);
+		return this.equals(itemDelimitationTag);
 	}
 	
-	public boolean isDicomElementEnd() {
-		if (dicomElementEnd == null) {
-			dicomElementEnd = new Tag(DICOM_ELEMENT_END_BYTE);
+	public boolean isSequenceDelimitationTag() {
+		if (sequenceDelimitationTag == null) {
+			sequenceDelimitationTag = new Tag(SEQUENCE_DELIMITATION_TAG_BYTES);
 		}
 		
-		return this.equals(dicomElementEnd);
+		return this.equals(sequenceDelimitationTag);
 	}
 	
 	@Override

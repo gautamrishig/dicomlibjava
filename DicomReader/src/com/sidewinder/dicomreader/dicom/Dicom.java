@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.sound.midi.SysexMessage;
+
 import com.sidewinder.dicomreader.dicom.dicomelement.DicomElement;
 import com.sidewinder.dicomreader.dicom.tags.Tag;
 import com.sidewinder.dicomreader.dicom.vr.Value;
@@ -16,7 +18,7 @@ import com.sidewinder.dicomreader.util.DataMarshaller;
 public class Dicom {
 	
 	private static final int IMPLICIT_LENGTH = 0xFFFFFFFF & 0xFFFFFFFF;
-	
+		
 	private static final int MAX_CACHED_BYTES = 128;
 	
 	private DicomObject dicomObject;
@@ -36,6 +38,7 @@ public class Dicom {
 	}
 
 	private void readDicomFile(File file) {
+		DicomObject dicomObject;
 		try {
 			is = new FileInputStream(file);
 			bis = new BufferedInputStream(is);
@@ -46,7 +49,10 @@ public class Dicom {
 			// Old version...
 			//List<DicomObject> list = parseExplicit(-1, 0);
 			
-			parseDicomObject(0);
+			dicomObject = parseDicomObject(0);
+			
+			System.out.println("DicomObject:");
+			System.out.println(dicomObject);
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -56,41 +62,93 @@ public class Dicom {
 	}
 	
 	
-	private DicomObject parseDicomObject(int dicomObjectLength) throws IOException {
+	private DicomObject parseDicomObject(int dicomObjectLength)
+			throws IOException {
 		int type;
 		long elementLength;
+		long endingPos = Long.MAX_VALUE;
 		Tag tag;
+		Value value;
+		DicomElement dicomElement = null;
 		List<DicomElement> dicomElementList = new ArrayList<DicomElement>();
 		
-		// Read tag (4 bytes)
-		tag = readTag();
+		// Computing DicomObjectLength (if caller gave this information)
+		if (dicomObjectLength != 0) {
+			endingPos = currentPos + dicomObjectLength;
+		}
 		
-		while (bis.available() > 0) {
-			type = readValueRepresentation();
-			elementLength = readContentLength(type);
+		while (bis.available() > 0 && currentPos < endingPos) {
+			tag = readTag();
 			
-			if (type == Value.VR_SQ) {
-				// Manage the container
+			// Skip if the tag is an ItemDelimitationTag or
+			// SequenceDelimitationTag
+			if (tag.isItemDelimitationTag() ||
+					tag.isSequenceDelimitationTag()) {
+				elementLength = readContentLength(Tag.ITEM_TAG);
 			} else {
-				// Manage a normal element
-				if (elementLength > MAX_CACHED_BYTES) {
-					// Preview
+				type = readValueRepresentation();
+				elementLength = readContentLength(type);
+				
+				if (type == Value.VR_SQ) {
+					// Manage the container
+					System.out.println("Container, exiting (" + currentPos + ", " + elementLength + ")");
+					value = readSequenceValue(elementLength);
+					System.out.println(value);
+					break; //TODO: finish SQ reading implementation
 				} else {
-					// Complete
+					// Manage a normal element
+					if (elementLength > MAX_CACHED_BYTES) {
+						// Preview
+						value = readElement(type, MAX_CACHED_BYTES);
+						skip(elementLength - MAX_CACHED_BYTES);
+						dicomElement = DicomElement.createPreviewDicomElement(
+								tag, value, currentPos, elementLength);
+					} else {
+						// Complete
+						value = readElement(type, elementLength);
+						dicomElement =
+							DicomElement.createNormalDicomElement(tag, value);
+					}
 				}
+				
+				dicomElementList.add(dicomElement);
 			}
 		}
 		
 		return new DicomObject(dicomElementList);
 	}
 	
+	private Value readSequenceValue(long elementLength) 
+			throws IOException {
+		List<DicomObject> dicomObjectList = new ArrayList<DicomObject>();
+		long dicomObjectLength;
+		
+		long endingPos = currentPos + elementLength;
+		Tag tag;
+		
+		while (currentPos < endingPos) {
+			
+			// Read ItemTag
+			tag = readTag();
+			if (!tag.isItemTag()) {
+				//TODO: generate an error here!!!
+				System.out.println("Error");
+			}
+			
+			dicomObjectLength = readContentLength(Tag.ITEM_TAG);
+			dicomObjectList.add(parseDicomObject((int) dicomObjectLength));
+		}
+		
+		return Value.createContainerValue(dicomObjectList, elementLength);
+	}
+	
 	private Value readElement(int type, long elementLength) 
 			throws IOException {
 		byte[] temp128 = new byte[MAX_CACHED_BYTES];
 		
+		readBytes(temp128, (int) elementLength);
 		
-		
-		return null;
+		return Value.createValue(type, temp128, elementLength);
 	}
 	
 	private long readContentLength(int type) throws IOException {
@@ -98,16 +156,18 @@ public class Dicom {
 		byte[] temp4 = new byte[4];
 		long elementLength;
 		
-		if (Value.has4BytesLength(type)) {
-			// Skipping the remaining bytes from of the
-			// Value Representation word
-			currentPos += bis.skip(2);
+		if (Value.has4BytesLength(type) || type == Tag.ITEM_TAG) {
+			if (type != Tag.ITEM_TAG) {
+				// Skipping the remaining bytes from of the
+				// Value Representation word
+				currentPos += bis.skip(2);
+			}
 			// Reading element length
 			readBytes(temp4);
 			elementLength = DataMarshaller.getDicomUnsignedLong(temp4);
 			// Check if Length is implicit. If so, compute the element's length
 			if (elementLength == IMPLICIT_LENGTH) {
-				elementLength = computeLength();
+				elementLength = computeLength(type);
 			}
 			return elementLength;
 		} else {
@@ -147,8 +207,46 @@ public class Dicom {
 		}
 	}
 
+	private int computeLength(int type) throws IOException {
+		int length = 0;
+		
+		if (type == Value.VR_SQ) {
+			length = computeSequenceLength();
+		} else {
+			length = computeDicomObjectLength();
+		}
+		
+		// Accounting for the ending tag and fake length
+		length += 4;
+		
+		// Restoring the last saved position
+		is.getChannel().position(currentPos);
+		bis = new BufferedInputStream(is);
+		
+		return length;
+	}
 	
+	private int computeSequenceLength() throws IOException {
+		byte[] temp4 = new byte[4];
+		int length = 0;
+		
+		do {
+			length += bis.read(temp4);
+		} while (!new Tag(temp4).isSequenceDelimitationTag());
+		
+		return length;
+	}
 	
+	private int computeDicomObjectLength() throws IOException {
+		byte[] temp4 = new byte[4];
+		int length = 0;
+		
+		do {
+			length += bis.read(temp4);
+		} while (!new Tag(temp4).isItemDelimitationTag());
+		
+		return length;
+	}
 	
 	
 	
@@ -187,7 +285,7 @@ public class Dicom {
 			
 			// Create a new DicomObject and add it to the list, plus reset
 			// the dicomElementList object
-			if (tag.isDicomObjectStart()) {
+			if (tag.isItemTag()) {
 				System.out.println(currentPos + " Creating new DicomObject");
 				dicomObjectList.add(new DicomObject(dicomElementList));
 				dicomElementList = new ArrayList<DicomElement>();
@@ -196,7 +294,7 @@ public class Dicom {
 				readBytes(temp4);
 				readBytes(temp4);
 				tag = new Tag(temp4);
-			} else if (tag.isDicomElementEnd()) {
+			} else if (tag.isSequenceDelimitationTag()) {
 				System.out.println("END"); //TODO: Debug, remove it!!
 				continue;
 			}
@@ -213,7 +311,7 @@ public class Dicom {
 				if (dicomElementLength == IMPLICIT_LENGTH) {
 					// Reading start tag
 					readBytes(temp4); // TODO: Now it's ignored, should I do something with it? Like a sanity check?
-					dicomElementLength = computeLength();
+					dicomElementLength = computeLengthOld();
 				}
 				
 				if (Value.isContainerElement(vr)) {
@@ -277,13 +375,13 @@ public class Dicom {
 		currentPos += bis.read(buffer, 0, length);
 	}
 	
-	private int computeLength() throws IOException {
+	private int computeLengthOld() throws IOException {
 		byte[] temp4 = new byte[4];
 		int length = 0;
 		
 		do {
 			length += bis.read(temp4);
-		} while (!new Tag(temp4).isDicomElementEnd());
+		} while (!new Tag(temp4).isSequenceDelimitationTag());
 		
 		// Not accounting for the ending tag
 		length -= 4;
