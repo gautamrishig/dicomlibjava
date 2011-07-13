@@ -15,7 +15,6 @@ public class SequenceValue extends Value {
 	@Override
 	protected Object fromByteArray(byte[] data, long contentLength)
 			throws IllegalArgumentException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 	
@@ -26,8 +25,15 @@ public class SequenceValue extends Value {
 	
 	@Override
 	protected String getStringValue() {
-		// TODO Auto-generated method stub
-		return null;
+		StringBuilder builder = new StringBuilder();
+		int i = 0;
+		
+		for (DicomObject dicomObject : (List<DicomObject>)getValue()) {
+			builder.append("Dicom Object " + i++ + "\n");
+			builder.append(dicomObject.toString());
+		}
+		
+		return builder.toString();
 	}
 	
 	protected static boolean isCompatible(int type) {

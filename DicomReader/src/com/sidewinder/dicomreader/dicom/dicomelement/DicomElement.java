@@ -33,5 +33,6 @@ public abstract class DicomElement {
 	
 	public abstract boolean isPreview();
 
-	public abstract Value getCompleteValue();
+	public abstract Value getCompleteValue(String fileName)
+		throws IllegalArgumentException;
 }

@@ -9,6 +9,7 @@ public class DateTimeValue extends Value {
 	public static final int DA_LENGTH = 8;
 	public static final int DT_LENGTH = 26;
 	public static final int TM_LENGTH = 16;
+	public static final int MINIMUM_TM_LENGTH = 2;
 	
 	protected DateTimeValue(int type, byte[] data, long contentLength) {
 		super(type, data, contentLength);
@@ -36,14 +37,25 @@ public class DateTimeValue extends Value {
 	
 	private Date decodeDA(byte[] data, long contentLength) 
 			throws IllegalArgumentException {
+		byte[] converted = new byte[DA_LENGTH];
+		int ci = 0;
 		int year;
 		int month;
 		int dayOfMonth;
 		
-		if (contentLength != DA_LENGTH) {
-			throw new IllegalArgumentException("DA Values must be exactly " +
-					DA_LENGTH + " bytes long.");
+		// Reformat the string if is in violation of current DICOM standards
+		// but conforms to old nema (YYYY.MM.DD)
+		for (int i = 0; i < contentLength; i++) {
+			if (ci > DA_LENGTH) {
+				throw new IllegalArgumentException("DA Value does not conform " +
+						"to neither ACR-NEMA nor DICOM date standards");
+			}
+			if (data[i] != '.') {
+				converted[ci++] = data[i];
+			}
 		}
+		contentLength = ci;
+		data = converted;
 		
 		year = Integer.parseInt(new String(data, 0, 4));
 		month = Integer.parseInt(new String(data, 4, 2));
@@ -90,23 +102,43 @@ public class DateTimeValue extends Value {
 	
 	// TODO: this method ignores milliseconds!
 	private Date decodeTM(byte[] data, long contentLength) {
+		byte[] converted = new byte[TM_LENGTH];
+		int ci = 0;
 		int hourOfDay = 0;
 		int minute = 0;
 		int second = 0;
 		
-		if (contentLength > TM_LENGTH) {
-			throw new IllegalArgumentException("DA Values must at most " +
-					DT_LENGTH + " bytes long.");
+		if (contentLength < MINIMUM_TM_LENGTH) {
+			throw new IllegalArgumentException("TM values must be at " +
+					"least " + MINIMUM_TM_LENGTH + " bytes long.");
+		}
+		
+		// Reformat the string if is in violation of current DICOM standards
+		// but conforms to old nema (HH:MM:SS)
+		for (int i = 0; i < contentLength; i++) {
+			if (ci > TM_LENGTH) {
+				throw new IllegalArgumentException("TM value does not conform " +
+						"to neither ACR-NEMA nor DICOM standard.");
+			}
+			if (data[i] != ':') {
+				converted[ci++] = data[i];
+			}
+		}
+		contentLength = ci;
+		data = converted;
+		
+		for (int i = 0; i < contentLength; i++) {
+			System.out.println(data[i]);
 		}
 		
 		if (contentLength >= 2) {
 			hourOfDay = Integer.parseInt(new String(data, 0, 2));
 		}
 		if (contentLength >= 4) {
-			hourOfDay = Integer.parseInt(new String(data, 2, 2));
+			minute = Integer.parseInt(new String(data, 2, 2));
 		}
 		if (contentLength >= 6) {
-			hourOfDay = Integer.parseInt(new String(data, 4, 2));
+			second = Integer.parseInt(new String(data, 4, 2));
 		}
 		
 		return new GregorianCalendar(0, 0, 0, hourOfDay, minute, second).getTime();

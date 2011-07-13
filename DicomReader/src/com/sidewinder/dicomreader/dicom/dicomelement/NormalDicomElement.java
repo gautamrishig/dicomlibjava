@@ -15,7 +15,7 @@ public class NormalDicomElement extends DicomElement {
 	}
 	
 	@Override
-	public Value getCompleteValue() {
+	public Value getCompleteValue(String fileName) {
 		return getValue();
 	}
 	

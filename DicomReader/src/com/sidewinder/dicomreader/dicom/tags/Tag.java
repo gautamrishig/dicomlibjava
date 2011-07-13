@@ -10,10 +10,9 @@ public class Tag implements Comparable<Tag> {
 	public static int SEQUENCE_DELIMITATION_TAG = 0xFFFEE0DD & 0xFFFFFFFF;
 	
 	private static Tag itemTag = null;
-	
 	private static Tag itemDelimitationTag = null;
-	
 	private static Tag sequenceDelimitationTag = null;
+	private static Tag pixelDataTag;
 	
 	private static final byte[] ITEM_TAG_BYTES =
 		{(byte)0xFE, (byte)0xFF, (byte)0x00, (byte)0xE0};
@@ -23,6 +22,9 @@ public class Tag implements Comparable<Tag> {
 	
 	private static final byte[] SEQUENCE_DELIMITATION_TAG_BYTES =
 		{(byte)0xFE, (byte)0xFF, (byte)0xDD, (byte)0xE0};
+	
+	private static final byte[] PIXEL_DATA_BYTES =
+		{(byte)0xE0, (byte)0x7F, (byte)0x10, (byte)0x00};
 	
 	public static final int TAG_BYTE_LENGTH = 4;
 	
@@ -89,6 +91,14 @@ public class Tag implements Comparable<Tag> {
 		}
 		
 		return this.equals(sequenceDelimitationTag);
+	}
+	
+	public boolean isPixelDataTag() {
+		if (pixelDataTag == null) {
+			pixelDataTag = new Tag(PIXEL_DATA_BYTES);
+		}
+		
+		return this.equals(pixelDataTag);
 	}
 	
 	@Override
