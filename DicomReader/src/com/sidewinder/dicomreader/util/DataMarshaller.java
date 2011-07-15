@@ -1,6 +1,6 @@
 package com.sidewinder.dicomreader.util;
 
-import com.sidewinder.dicomreader.dicom.vr.UnsignedValue;
+import com.sidewinder.dicomreader.dicom.values.UnsignedValue;
 
 public class DataMarshaller {
 
