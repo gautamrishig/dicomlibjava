@@ -15,7 +15,7 @@ import com.sidewinder.dicomreader.dicom.tags.Tag;
 import com.sidewinder.dicomreader.dicom.vr.Value;
 import com.sidewinder.dicomreader.util.DataMarshaller;
 
-public class Dicom {
+public class DicomFile {
 	
 	private static final int IMPLICIT_LENGTH = 0xFFFFFFFF & 0xFFFFFFFF;
 		
@@ -30,7 +30,7 @@ public class Dicom {
 	private FileInputStream is;
 	private BufferedInputStream bis;
 	
-	public Dicom(String file) {	
+	public DicomFile(String file) {	
 		dicomFile = new File(file);
 		if (dicomFile.exists()) {
 			readDicomFile(dicomFile);
@@ -45,9 +45,6 @@ public class Dicom {
 			// Skipping first 128 bytes and DICM string
 			bis.skip(132);
 			currentPos += 132;
-
-			// Old version...
-			//List<DicomObject> list = parseExplicit(-1, 0);
 			
 			dicomObject = parseDicomObject(0);
 			
