@@ -68,11 +68,71 @@ public abstract class Value {
 		{ "UL", "Unsigned Long" },
 		{ "UN", "Unknown" },
 		{ "US", "Unsigned Short" },
-		{ "UT", "Unlimited Text" } };
+		{ "UT", "Unlimited Text" }
+	};
+	
+	private static final int[] vrLengths = {
+		0,
+		0,
+		0,
+		0,
+		8, // DA Date
+		0,
+		26, // DT Date Time
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0
+	};
+	
+	private static final boolean[] vrFixedLength = {
+		false,
+		false,
+		false,
+		false,
+		true, // DA Date
+		false,
+		false, // DT Date Time
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false,
+		false
+	};
 
-	private int type; // Type of VR (see VRFactory)
+	private int type; // Type of VR
 	private Object value;
-	private long length;
 	private long contentLength;
 
 	/**
@@ -84,7 +144,6 @@ public abstract class Value {
 	 */
 	protected Value(int type, byte[] data, long contentLength) {
 		this.type = type;
-		this.length = getDicomLength(type);
 		if (contentLength > data.length) {
 			throw new IllegalArgumentException("Content length cannot be " +
 					"longer than the data array.");
@@ -102,7 +161,6 @@ public abstract class Value {
 	 */
 	protected Value(int type, Object value, long contentLength) {
 		this.type = type;
-		this.length = getDicomLength(type);
 		this.contentLength = contentLength;
 		this.value = value;
 	}
@@ -142,18 +200,6 @@ public abstract class Value {
 	 */
 	public Object getValue() {
 		return value;
-	}
-
-	/**
-	 * Returns the length (in bytes) of the current Value Representation as
-	 * specified by the DICOM standard. Depending on the instance, this value
-	 * can be a maximum length or a mandatory length.
-	 * 
-	 * @return Value Representation length (in bytes) as described in the DICOM
-	 * standard. -1 if the standard does not prescribe any length.
-	 */
-	public long getLength() {
-		return length;
 	}
 
 	/**
@@ -214,8 +260,8 @@ public abstract class Value {
 			return new UniqueIdentifierValue(type, data, contentLength);
 		} else if (ApplicationEntityValue.isCompatible(type)) {
 			return new ApplicationEntityValue(type, data, contentLength);
-		} else if (DateTimeValue.isCompatible(type)){
-			return new DateTimeValue(type, data, contentLength);
+		} else if (DateTimeValueOld.isCompatible(type)){
+			return new DateTimeValueOld(type, data, contentLength);
 		} else if (OtherValue.isCompatible(type)) {
 			return new OtherValue(type, data, contentLength);
 		} else if (TextValue.isCompatible(type)) {
@@ -265,30 +311,6 @@ public abstract class Value {
 	
 	/**
 	 * Checks if the identifier passed as a parameter corresponds to a
-	 * Value Representation that may contain more than 128 bytes of data.
-	 * 
-	 * @param type Value Representation type to check
-	 * @return True if the content of the current Value Representation may
-	 * be over 128 bytes
-	 */
-	public static boolean hasLongContent(int type) {
-		switch (type) {
-		case Value.VR_LT:
-		case Value.VR_OF:
-		case Value.VR_OB:
-		case Value.VR_OW:
-		case Value.VR_ST:
-		case Value.VR_SQ:
-		case Value.VR_UN:
-		case Value.VR_UT:
-			return true;
-		default:
-			return false;
-		}
-	}
-	
-	/**
-	 * Checks if the identifier passed as a parameter corresponds to a
 	 * Value Representation uses a 4 byte length in Explicit mode.
 	 * 
 	 * @param type Value Representation type to check
@@ -310,16 +332,19 @@ public abstract class Value {
 	}
 	
 	/**
-	 * Checks if the identifier passed as a parameter corresponds to a
-	 * container Value Representation
+	 * Returns the length (in bytes) of the current Value Representation as
+	 * specified by the DICOM standard. Depending on the instance, this value
+	 * can be a maximum length or a mandatory length.
 	 * 
-	 * @param type Value Representation type to check
-	 * @return True if the content of the current Value Representation is of
-	 * type VR_SQ
+	 * @return Value Representation length (in bytes) as described in the DICOM
+	 * standard. -1 if the standard does not prescribe any length.
 	 */
-	@Deprecated
-	public static boolean isContainerElement(int type) {
-		return type == Value.VR_SQ;
+	public int getDicomLength() {
+		return vrLengths[type];
+	}
+	
+	public boolean isFixedLength() {
+		return vrFixedLength[type];
 	}
 
 	/**
@@ -346,7 +371,5 @@ public abstract class Value {
 	 * @return String representation of the value of the class. 
 	 */
 	protected abstract String getStringValue();
-	
-	protected abstract long getDicomLength(int type);
 	
 }

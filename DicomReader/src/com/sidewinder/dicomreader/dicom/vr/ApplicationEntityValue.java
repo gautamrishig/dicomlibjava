@@ -36,8 +36,10 @@ public class ApplicationEntityValue extends Value {
 		
 		return AE_LENGTH;
 	}
-
-	protected static boolean isCompatible(int type) {
-		return type == Value.VR_AE;
+	
+	@Override
+	protected boolean isFixedLength() {
+		return true;
 	}
+
 }
