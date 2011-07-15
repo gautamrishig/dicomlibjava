@@ -368,10 +368,18 @@ public abstract class Value {
 	 * standard. -1 if the standard does not prescribe any length.
 	 */
 	public int getDicomLength() {
-		return vrLengths[type];
+		return getDicomLength(type);
 	}
 	
 	public boolean isFixedLength() {
+		return isFixedLength(type);
+	}
+	
+	public static int getDicomLength(int type) {
+		return vrLengths[type];
+	}
+	
+	public static boolean isFixedLength(int type) {
 		return vrFixedLength[type];
 	}
 

@@ -1,6 +1,6 @@
-- Restructure VR (single class for every VR, current VR classes used as backing abstract classes
+- Implement fragmented pixel data reading
 - Implement Dictionary and implicit VR parsing procedure
 - Implement value multiplicity
-- Implement fragmented pixel data reading
+- Unique identifier registry
 - Check preview values implementation
 - Check padding values (book 5)

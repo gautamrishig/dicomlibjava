@@ -8,6 +8,7 @@ public class Tag implements Comparable<Tag> {
 	public static int ITEM_TAG = 0xFFFEE000 & 0xFFFFFFFF;
 	public static int ITEM_DELIMITATION_TAG = 0xFFFEE00D & 0xFFFFFFFF;
 	public static int SEQUENCE_DELIMITATION_TAG = 0xFFFEE0DD & 0xFFFFFFFF;
+	public static int PIXEL_DATA_TAG = 0x7FE00010 & 0XFFFFFFFF;
 	
 	private static Tag itemTag = null;
 	private static Tag itemDelimitationTag = null;

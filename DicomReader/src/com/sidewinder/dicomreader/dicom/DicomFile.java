@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.sidewinder.dicomreader.dicom.dicomelement.DicomElement;
 import com.sidewinder.dicomreader.dicom.tags.Tag;
 import com.sidewinder.dicomreader.dicom.values.Value;
 import com.sidewinder.dicomreader.util.DataMarshaller;
@@ -56,14 +55,14 @@ public class DicomFile {
 		}
 	}
 	
-	
 	private DicomObject parseDicomObject(int dicomObjectLength)
 			throws IOException {
 		int type;
-		long elementLength;
+		int elementPos;
+		int elementLength;
 		long endingPos = Long.MAX_VALUE;
 		Tag tag;
-		Value value;
+		List<Value> values;
 		DicomElement dicomElement = null;
 		List<DicomElement> dicomElementList = new ArrayList<DicomElement>();
 		
@@ -75,6 +74,11 @@ public class DicomFile {
 		while (bis.available() > 0 && currentPos < endingPos) {
 			tag = readTag();
 			
+			if (tag.isPixelDataTag()) {
+				System.out.println("pixel");
+				break;
+			}
+			
 			// Skip if the tag is an ItemDelimitationTag or
 			// SequenceDelimitationTag
 			if (tag.isItemDelimitationTag() ||
@@ -83,25 +87,28 @@ public class DicomFile {
 			} else {
 				type = readValueRepresentation();
 				elementLength = readContentLength(type);
+				elementPos = currentPos;
 				
 				if (type == Value.SQ) {
 					// Manage the container
-					System.out.println("Container (" + currentPos + ", " + elementLength + ")");
-					value = readSequenceValue(elementLength);
+					values = new ArrayList<Value>();
+					values.add(readSequenceValue(elementLength));
+					dicomElement = new DicomElement(tag, values, elementPos, elementLength, false);
 				} else {
 					System.out.println("Normal Element (" + currentPos + ")");
 					// Manage a normal element
 					if (elementLength > MAX_CACHED_BYTES) {
 						// Preview
-						value = readElement(type, MAX_CACHED_BYTES);
+						values = new ArrayList<Value>();
+						values.add(readPreviewValue(type));
 						skip(elementLength - MAX_CACHED_BYTES);
-						dicomElement = DicomElement.createPreviewDicomElement(
-								tag, value, currentPos, elementLength);
+						dicomElement = new DicomElement(tag, values,
+								elementPos, elementLength, true);
+						
 					} else {
 						// Complete
-						value = readElement(type, elementLength);
-						dicomElement =
-							DicomElement.createNormalDicomElement(tag, value);
+						values = readValues(type, elementLength);
+						dicomElement = new DicomElement(tag, values, elementPos, elementLength, false);
 					}
 				}
 				
@@ -112,12 +119,31 @@ public class DicomFile {
 		return new DicomObject(dicomElementList);
 	}
 	
-	private Value readSequenceValue(long elementLength) 
+	private Value readPixelData(int type, int elementLength) 
+			throws IOException {
+		byte[] buffer = new byte[elementLength];
+		Value value;
+		
+		if (elementLength == IMPLICIT_LENGTH) {
+			// Encapsulated value
+			
+			// Reading Basic Offset Table Item
+			
+			value = null;
+		} else {
+			// Native value
+			readBytes(buffer);
+			value = Value.createValue(type, buffer, elementLength);
+		}
+		
+		return value;
+	}
+	
+	private Value readSequenceValue(int elementLength) 
 			throws IOException {
 		List<DicomObject> dicomObjectList = new ArrayList<DicomObject>();
-		long dicomObjectLength;
-		
-		long endingPos = currentPos + elementLength;
+		int dicomObjectLength;
+		int endingPos = currentPos + elementLength;
 		Tag tag;
 		
 		while (currentPos < endingPos) {
@@ -130,22 +156,54 @@ public class DicomFile {
 			}
 			
 			dicomObjectLength = readContentLength(Tag.ITEM_TAG);
-			dicomObjectList.add(parseDicomObject((int) dicomObjectLength));
+			dicomObjectList.add(parseDicomObject(dicomObjectLength));
 		}
 		
 		return Value.createContainerValue(dicomObjectList, elementLength);
 	}
 	
-	private Value readElement(int type, long elementLength) 
+	private Value readPreviewValue(int type)
 			throws IOException {
 		byte[] temp128 = new byte[MAX_CACHED_BYTES];
 		
-		readBytes(temp128, (int) elementLength);
+		readBytes(temp128);
 		
-		return Value.createValue(type, temp128, elementLength);
+		return Value.createValue(type, temp128, MAX_CACHED_BYTES);
 	}
 	
-	private long readContentLength(int type) throws IOException {
+	private List<Value> readValues(int type, int elementLength) 
+			throws IOException {
+		byte[] tempA = new byte[elementLength];
+		byte[] tempB = new byte[elementLength];
+		List<Value> values = new ArrayList<Value>();
+		
+		readBytes(tempA, elementLength);
+		
+		if (Value.isFixedLength(type)) {
+			int valueLength = Value.getDicomLength(type);
+			for (int iA = 0, iB = 0; iA < elementLength; iA++) {
+				if (iB == valueLength) {
+					values.add(Value.createValue(type, tempB, iB));
+					iB = 0;
+				} else {
+					tempB[iB++] = tempA[iA];
+				}
+			}
+		} else {
+			for (int iA = 0, iB = 0; iA < elementLength; iA++) {
+				if (tempA[iA] == '\\') {
+					values.add(Value.createValue(type, tempB, iB));
+					iB = 0;
+				} else {
+					tempB[iB++] = tempA[iA];
+				}
+			}
+		}
+		
+		return values;
+	}
+	
+	private int readContentLength(int type) throws IOException {
 		byte[] temp2 = new byte[2];
 		byte[] temp4 = new byte[4];
 		long elementLength;
@@ -163,7 +221,8 @@ public class DicomFile {
 			if (elementLength == IMPLICIT_LENGTH) {
 				elementLength = computeLength(type);
 			}
-			return elementLength;
+			//TODO: we assume 2^32/2 is the maximum length for any of the elements
+			return (int)elementLength;
 		} else {
 			readBytes(temp2);
 			return DataMarshaller.getDicomUnsignedShort(temp2);
@@ -210,7 +269,7 @@ public class DicomFile {
 			length = computeDicomObjectLength();
 		}
 		
-		// Accounting for the ending tag and fake length
+		// Accounting for the ending tag and 0x00000000 length
 		length += 4;
 		
 		// Restoring the last saved position
