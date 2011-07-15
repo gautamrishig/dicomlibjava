@@ -12,7 +12,7 @@ import javax.sound.midi.SysexMessage;
 
 import com.sidewinder.dicomreader.dicom.dicomelement.DicomElement;
 import com.sidewinder.dicomreader.dicom.tags.Tag;
-import com.sidewinder.dicomreader.dicom.vr.Value;
+import com.sidewinder.dicomreader.dicom.values.Value;
 import com.sidewinder.dicomreader.util.DataMarshaller;
 
 public class DicomFile {
