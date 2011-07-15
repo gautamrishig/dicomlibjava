@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 
 import com.sidewinder.dicomreader.dicom.tags.Tag;
-import com.sidewinder.dicomreader.dicom.vr.Value;
+import com.sidewinder.dicomreader.dicom.values.Value;
 
 public class PreviewDicomElement extends DicomElement {
 

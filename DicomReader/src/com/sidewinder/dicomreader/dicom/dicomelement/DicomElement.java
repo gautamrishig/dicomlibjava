@@ -1,7 +1,7 @@
 package com.sidewinder.dicomreader.dicom.dicomelement;
 
 import com.sidewinder.dicomreader.dicom.tags.Tag;
-import com.sidewinder.dicomreader.dicom.vr.Value;
+import com.sidewinder.dicomreader.dicom.values.Value;
 
 public abstract class DicomElement {
 
