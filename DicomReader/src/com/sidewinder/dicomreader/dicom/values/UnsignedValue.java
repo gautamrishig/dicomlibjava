@@ -4,7 +4,7 @@ import com.sidewinder.dicomreader.util.DataMarshaller;
 
 public abstract class UnsignedValue extends Value {
 	
-	protected UnsignedValue(int type, byte[] data, long contentLength) {
+	protected UnsignedValue(int type, byte[] data, int contentLength) {
 		super(type, data, contentLength);
 	}
 

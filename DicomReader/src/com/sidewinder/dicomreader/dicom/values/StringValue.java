@@ -8,7 +8,7 @@ package com.sidewinder.dicomreader.dicom.values;
  */
 public abstract class StringValue extends Value {
 	
-	protected StringValue(int type, byte[] data, long contentLength) {
+	protected StringValue(int type, byte[] data, int contentLength) {
 		super(type, data, contentLength);
 	}
 	

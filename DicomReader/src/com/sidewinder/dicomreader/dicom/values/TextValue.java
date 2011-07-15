@@ -5,11 +5,7 @@ package com.sidewinder.dicomreader.dicom.values;
 // of the content
 public abstract class TextValue extends Value {
 	
-	public static final int ST_LENGTH = 1024;
-	public static final int LT_LENGTH = 10240;
-	public static final long UT_LENGTH = 4294967294L;
-	
-	protected TextValue(int type, byte[] data, long contentLength) {
+	protected TextValue(int type, byte[] data, int contentLength) {
 		super(type, data, contentLength);
 	}
 

@@ -7,7 +7,7 @@ import java.util.GregorianCalendar;
 //TODO: this class ignores milliseconds!
 public class DateTimeValue extends Value {
 	
-	protected DateTimeValue(int type, byte[] data, long contentLength) {
+	protected DateTimeValue(int type, byte[] data, int contentLength) {
 		super(type, data, contentLength);
 	}
 

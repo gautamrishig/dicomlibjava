@@ -8,7 +8,7 @@ public class TimeValue extends Value {
 	
 	private static final int MINIMUM_TM_LENGTH = 2;
 	
-	protected TimeValue(int type, byte[] data, long contentLength) {
+	protected TimeValue(int type, byte[] data, int contentLength) {
 		super(type, data, contentLength);
 	}
 

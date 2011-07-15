@@ -1,29 +1,30 @@
 package com.sidewinder.dicomreader.util;
 
-import com.sidewinder.dicomreader.dicom.values.UnsignedValue;
-
 public class DataMarshaller {
 
+	private static final int UNSIGNED_LONG_LENGTH = 4;
+	private static final int UNSIGNED_SHORT_LENGTH = 2;
+	
 	private static final short BYTE_OFFSET = 8;
 
 	public static long getDicomUnsignedLong(byte[] data)
 			throws IllegalArgumentException {
-		return fromByteArrayUnsigned(data, 0, UnsignedValue.UL_LENGTH);
+		return fromByteArrayUnsigned(data, 0, UNSIGNED_LONG_LENGTH);
 	}
 
 	public static long getDicomUnsignedLong(byte[] data, int arrayOffset)
 			throws IllegalArgumentException {
-		return fromByteArrayUnsigned(data, arrayOffset, UnsignedValue.UL_LENGTH);
+		return fromByteArrayUnsigned(data, arrayOffset, UNSIGNED_LONG_LENGTH);
 	}
 
 	public static int getDicomUnsignedShort(byte[] data) 
 			throws IllegalArgumentException {
-		return (int) fromByteArrayUnsigned(data, 0, UnsignedValue.US_LENGTH);
+		return (int) fromByteArrayUnsigned(data, 0, UNSIGNED_SHORT_LENGTH);
 	}
 	
 	public static int getDicomUnsignedShort(byte[] data, int arrayOffset) 
 			throws IllegalArgumentException {
-		return (int) fromByteArrayUnsigned(data, arrayOffset, UnsignedValue.US_LENGTH);
+		return (int) fromByteArrayUnsigned(data, arrayOffset, UNSIGNED_SHORT_LENGTH);
 	}
 
 	private static long fromByteArrayUnsigned(byte[] data, int arrayOffset, int length)

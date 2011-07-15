@@ -8,33 +8,33 @@ public abstract class Value {
 
 	// Value Representations identifiers
 	public static final int UNIDENTIFIED = -1;
-	public static final int VR_AE = 0;
-	public static final int VR_AS = 1;
-	public static final int VR_AT = 2;
-	public static final int VR_CS = 3;
-	public static final int VR_DA = 4;
-	public static final int VR_DS = 5;
-	public static final int VR_DT = 6;
-	public static final int VR_FL = 7;
-	public static final int VR_FD = 8;
-	public static final int VR_IS = 9;
-	public static final int VR_LO = 10;
-	public static final int VR_LT = 11;
-	public static final int VR_OB = 12;
-	public static final int VR_OF = 13;
-	public static final int VR_OW = 14;
-	public static final int VR_PN = 15;
-	public static final int VR_SH = 16;
-	public static final int VR_SL = 17;
-	public static final int VR_SQ = 18;
-	public static final int VR_SS = 19;
-	public static final int VR_ST = 20;
-	public static final int VR_TM = 21;
-	public static final int VR_UI = 22;
-	public static final int VR_UL = 23;
-	public static final int VR_UN = 24;
-	public static final int VR_US = 25;
-	public static final int VR_UT = 26;
+	public static final int AE = 0;
+	public static final int AS = 1;
+	public static final int AT = 2;
+	public static final int CS = 3;
+	public static final int DA = 4;
+	public static final int DS = 5;
+	public static final int DT = 6;
+	public static final int FL = 7;
+	public static final int FD = 8;
+	public static final int IS = 9;
+	public static final int LO = 10;
+	public static final int LT = 11;
+	public static final int OB = 12;
+	public static final int OF = 13;
+	public static final int OW = 14;
+	public static final int PN = 15;
+	public static final int SH = 16;
+	public static final int SL = 17;
+	public static final int SQ = 18;
+	public static final int SS = 19;
+	public static final int ST = 20;
+	public static final int TM = 21;
+	public static final int UI = 22;
+	public static final int UL = 23;
+	public static final int UN = 24;
+	public static final int US = 25;
+	public static final int UT = 26;
 
 	// vsNames array column indexes
 	private static final int SHORT_NAME = 0;
@@ -74,7 +74,7 @@ public abstract class Value {
 	private static final int[] vrLengths = {
 		16,					// AE Application Entity
 		4,					// AS Age String
-		0,					// AT Attribute Tag
+		4,					// AT Attribute Tag
 		16,					// CS Code String
 		8,					// DA Date
 		16,					// DS Decimal String
@@ -104,7 +104,7 @@ public abstract class Value {
 	private static final boolean[] vrFixedLength = {
 		false,	// AE Application Entity
 		true,	// AS Age String
-		false,	// AT Attribute Tag
+		true,	// AT Attribute Tag
 		false,	// CS Code String
 		true,	// DA Date
 		false,	// DS Decimal String
@@ -142,7 +142,7 @@ public abstract class Value {
 	 * @param data Data to load in the current value.
 	 * @param contentLength Length of the actual data in the byte array.
 	 */
-	protected Value(int type, byte[] data, long contentLength) {
+	protected Value(int type, byte[] data, int contentLength) {
 		this.type = type;
 		if (contentLength > data.length) {
 			throw new IllegalArgumentException("Content length cannot be " +
@@ -159,7 +159,7 @@ public abstract class Value {
 	 * @param value Value to load in the current value.
 	 * @param contentLength Length of the actual data in the byte array.
 	 */
-	protected Value(int type, Object value, long contentLength) {
+	protected Value(int type, Object value, int contentLength) {
 		this.type = type;
 		this.contentLength = contentLength;
 		this.value = value;
@@ -252,27 +252,54 @@ public abstract class Value {
 	public static Value createValue(int type, byte[] data,
 			long contentLength) throws IllegalArgumentException {
 		
-		if (StringValue.isCompatible(type)) {
-			return new StringValue(type, data, contentLength);
-		} else if (UnsignedValue.isCompatible(type)){
-			return new UnsignedValue(type, data, contentLength);
-		} else if (UniqueIdentifierValue.isCompatible(type)) {
-			return new UniqueIdentifierValue(type, data, contentLength);
-		} else if (ApplicationEntityValue.isCompatible(type)) {
-			return new ApplicationEntityValue(type, data, contentLength);
-		} else if (DateTimeValueOld.isCompatible(type)){
-			return new DateTimeValueOld(type, data, contentLength);
-		} else if (OtherValue.isCompatible(type)) {
-			return new OtherValue(type, data, contentLength);
-		} else if (TextValue.isCompatible(type)) {
-			return new TextValue(type, data, contentLength);
-		} else if (PersonNameValue.isCompatible(type)){
-			return new PersonNameValue(type, data, contentLength);
-		} else if (AgeStringValue.isCompatible(type)) {
-			return new AgeStringValue(type, data, contentLength);
-		} else if (NumericStringValue.isCompatible(type)) {
-			return new NumericStringValue(type, data, contentLength);
-		} else {
+		//TODO: we assume 2^32/2 is the maximum length for any of the elements
+		switch (type) {
+		case AE:
+			return new ApplicationEntityValue(type, data, (int)contentLength);
+		case AS:
+			return new AgeStringValue(type, data, (int)contentLength);
+		case AT:
+			return new AttributeTagValue(type, data, (int)contentLength);
+		case CS:
+			return new CodeStringValue(type, data, (int)contentLength);
+		case DA:
+			return new DateValue(type, data, (int)contentLength);
+		case DS:
+			return new DecimalStringValue(type, data, (int)contentLength);
+		case DT:
+			return new DateTimeValue(type, data, (int)contentLength);
+		case IS:
+			return new IntegerStringValue(type, data, (int)contentLength);
+		case LO:
+			return new LongStringValue(type, data, (int)contentLength);
+		case LT:
+			return new LongTextValue(type, data, (int)contentLength);
+		case OB:
+			return new OtherByteValue(type, data, (int)contentLength);
+		case OF:
+			return new OtherFloatValue(type, data, (int)contentLength);
+		case OW:
+			return new OtherWordValue(type, data, (int)contentLength);
+		case PN:
+			return new PersonNameValue(type, data, (int)contentLength);
+		case SH:
+			return new ShortStringValue(type, data, (int)contentLength);
+		case ST:
+			return new ShortTextValue(type, data, (int)contentLength);
+		case TM:
+			return new TimeValue(type, data, (int)contentLength);
+		case UI:
+			return new UniqueIdentifierValue(type, data, (int)contentLength);
+		case UL:
+			return new UnsignedLongValue(type, data, (int)contentLength);
+		case UN:
+			return new UnknownValue(type, data, (int)contentLength);
+		case US:
+			return new UnsignedShortValue(type, data, (int)contentLength);
+		case UT:
+			return new UnlimitedTextValue(type, data, (int)contentLength);
+			
+		default:
 			throw new IllegalArgumentException(type + " is not a valid" +
 					" Value Representation Identifier.");
 		}
@@ -287,7 +314,8 @@ public abstract class Value {
 					"cannot contain a null list.");
 		}
 		
-		return new SequenceValue(elements, contentLength);
+		//TODO: we assume 2^32/2 is the maximum length for any of the elements
+		return new SequenceValue(elements, (int)contentLength);
 	}
 
 	/**
@@ -319,12 +347,12 @@ public abstract class Value {
 	 */
 	public static boolean has4BytesLength(int type) {
 		switch (type) {
-		case Value.VR_OF:
-		case Value.VR_OB:
-		case Value.VR_OW:
-		case Value.VR_SQ:
-		case Value.VR_UN:
-		case Value.VR_UT:
+		case Value.OF:
+		case Value.OB:
+		case Value.OW:
+		case Value.SQ:
+		case Value.UN:
+		case Value.UT:
 			return true;
 		default:
 			return false;

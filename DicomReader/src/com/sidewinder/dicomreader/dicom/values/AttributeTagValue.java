@@ -3,9 +3,9 @@ package com.sidewinder.dicomreader.dicom.values;
 import com.sidewinder.dicomreader.dicom.tags.Tag;
 
 // Just a wrapper for the Tag class
-public class AttributeTag extends Value {
+public class AttributeTagValue extends Value {
 	
-	protected AttributeTag(int type, byte[] data, long contentLength) {
+	protected AttributeTagValue(int type, byte[] data, int contentLength) {
 		super(type, data, contentLength);
 	}
 

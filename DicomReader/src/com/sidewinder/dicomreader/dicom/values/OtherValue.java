@@ -8,7 +8,7 @@ package com.sidewinder.dicomreader.dicom.values;
 // the DICOM transfer syntax
 public abstract class OtherValue extends Value {
 	
-	protected OtherValue(int type, byte[] data, long contentLength) {
+	protected OtherValue(int type, byte[] data, int contentLength) {
 		super(type, data, contentLength);
 	}
 

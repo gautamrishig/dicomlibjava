@@ -3,7 +3,7 @@ package com.sidewinder.dicomreader.dicom.values;
 public class UniqueIdentifierValue extends Value {
 		
 	protected UniqueIdentifierValue (int type, byte[] data,
-			long contentLength) {
+			int contentLength) {
 		super(type, data, contentLength);
 	}
 

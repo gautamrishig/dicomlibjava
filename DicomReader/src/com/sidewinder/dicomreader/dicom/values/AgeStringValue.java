@@ -2,7 +2,7 @@ package com.sidewinder.dicomreader.dicom.values;
 
 public class AgeStringValue extends Value {
 	
-	protected AgeStringValue(int type, byte[] data, long contentLength) {
+	protected AgeStringValue(int type, byte[] data, int contentLength) {
 		super(type, data, contentLength);
 	}
 

@@ -2,7 +2,7 @@ package com.sidewinder.dicomreader.dicom.values;
 
 public abstract class NumericStringValue extends Value {
 	
-	protected NumericStringValue(int type, byte[] data, long contentLength) {
+	protected NumericStringValue(int type, byte[] data, int contentLength) {
 		super(type, data, contentLength);
 	}
 

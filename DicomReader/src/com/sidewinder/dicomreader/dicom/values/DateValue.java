@@ -6,7 +6,7 @@ import java.util.GregorianCalendar;
 
 public class DateValue extends Value {
 	
-	protected DateValue(int type, byte[] data, long contentLength) {
+	protected DateValue(int type, byte[] data, int contentLength) {
 		super(type, data, contentLength);
 	}
 

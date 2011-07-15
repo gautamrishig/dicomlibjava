@@ -6,8 +6,8 @@ import com.sidewinder.dicomreader.dicom.DicomObject;
 
 public class SequenceValue extends Value {
 	
-	protected SequenceValue(List<DicomObject> value, long contentLength) {
-		super(Value.VR_SQ, value, contentLength);
+	protected SequenceValue(List<DicomObject> value, int contentLength) {
+		super(Value.SQ, value, contentLength);
 	}
 	
 	@Override

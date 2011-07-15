@@ -8,8 +8,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.sound.midi.SysexMessage;
-
 import com.sidewinder.dicomreader.dicom.dicomelement.DicomElement;
 import com.sidewinder.dicomreader.dicom.tags.Tag;
 import com.sidewinder.dicomreader.dicom.values.Value;
@@ -86,7 +84,7 @@ public class DicomFile {
 				type = readValueRepresentation();
 				elementLength = readContentLength(type);
 				
-				if (type == Value.VR_SQ) {
+				if (type == Value.SQ) {
 					// Manage the container
 					System.out.println("Container (" + currentPos + ", " + elementLength + ")");
 					value = readSequenceValue(elementLength);
@@ -206,7 +204,7 @@ public class DicomFile {
 	private int computeLength(int type) throws IOException {
 		int length = 0;
 		
-		if (type == Value.VR_SQ) {
+		if (type == Value.SQ) {
 			length = computeSequenceLength();
 		} else {
 			length = computeDicomObjectLength();

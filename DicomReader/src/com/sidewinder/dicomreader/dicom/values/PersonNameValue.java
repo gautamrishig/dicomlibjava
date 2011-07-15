@@ -5,7 +5,7 @@ package com.sidewinder.dicomreader.dicom.values;
 // and stored in an appropriate value
 public class PersonNameValue extends Value {
 	
-	protected PersonNameValue(int type, byte[] data, long contentLength) {
+	protected PersonNameValue(int type, byte[] data, int contentLength) {
 		super(type, data, contentLength);
 	}
 

@@ -2,7 +2,7 @@ package com.sidewinder.dicomreader.dicom.values;
 
 public class ApplicationEntityValue extends Value {
 		
-	protected ApplicationEntityValue(int type, byte[] data, long contentLength) {
+	protected ApplicationEntityValue(int type, byte[] data, int contentLength) {
 		super(type, data, contentLength);
 	}
 
