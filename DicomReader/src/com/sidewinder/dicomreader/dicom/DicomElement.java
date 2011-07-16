@@ -2,8 +2,8 @@ package com.sidewinder.dicomreader.dicom;
 
 import java.util.List;
 
-import com.sidewinder.dicomreader.dicom.tags.Tag;
-import com.sidewinder.dicomreader.dicom.values.Value;
+import com.sidewinder.dicomreader.dicom.tag.Tag;
+import com.sidewinder.dicomreader.dicom.value.Value;
 
 public class DicomElement {
 

@@ -8,8 +8,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.sidewinder.dicomreader.dicom.tags.Tag;
-import com.sidewinder.dicomreader.dicom.values.Value;
+import com.sidewinder.dicomreader.dicom.tag.Tag;
+import com.sidewinder.dicomreader.dicom.value.Value;
 import com.sidewinder.dicomreader.util.DataMarshaller;
 
 public class DicomFile {
