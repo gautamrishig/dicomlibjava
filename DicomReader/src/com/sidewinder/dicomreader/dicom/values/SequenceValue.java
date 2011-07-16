@@ -19,11 +19,12 @@ public class SequenceValue extends Value {
 	@Override
 	protected String getStringValue() {
 		StringBuilder builder = new StringBuilder();
-		int i = 0;
+		
+		builder.append("\n");
 		
 		for (DicomObject dicomObject : (List<DicomObject>)getValue()) {
-			builder.append("Dicom Object " + i++ + "\n");
-			builder.append(dicomObject.toString());
+			builder.append(">");
+			builder.append(dicomObject.toString().replace("\n", "\n>"));
 		}
 		
 		return builder.toString();

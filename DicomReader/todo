@@ -1,4 +1,4 @@
-- Restructure text output
+- Implement DICOM specific exception (e.g., MalformedDicom, etc)
 - Implement fragmented pixel data reading
 - Implement Dictionary and implicit VR parsing procedure
 - Unique identifier registry

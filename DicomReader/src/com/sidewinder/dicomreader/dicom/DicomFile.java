@@ -15,6 +15,7 @@ import com.sidewinder.dicomreader.util.DataMarshaller;
 public class DicomFile {
 	
 	private static final int IMPLICIT_LENGTH = 0xFFFFFFFF & 0xFFFFFFFF;
+	private static final int ZERO_LENGTH = 0x00000000 & 0xFFFFFFFF;
 		
 	private static final int MAX_CACHED_BYTES = 128;
 	
@@ -118,24 +119,56 @@ public class DicomFile {
 		return new DicomObject(dicomElementList);
 	}
 	
-	private Value readPixelData(int type, int elementLength) 
+	private List<Value> readPixelData(int type, int elementLength) 
 			throws IOException {
 		byte[] buffer = new byte[elementLength];
-		Value value;
+		List<Value> values = new ArrayList<Value>();
+		Tag tag;
+		int length;
+		int[] basicOffsetTable;
 		
 		if (elementLength == IMPLICIT_LENGTH) {
 			// Encapsulated value
 			
 			// Reading Basic Offset Table Item
+			tag = readTag();
+			if (!tag.isItemTag()) {
+				//TODO: throw an error here!
+			}
+			length = readItemLength();
+			basicOffsetTable = readBasicOffsetTable(length);
 			
-			value = null;
+			// Read frames
 		} else {
 			// Native value
 			readBytes(buffer);
-			value = Value.createValue(type, buffer, elementLength);
+			values.add(Value.createValue(type, buffer, elementLength));
 		}
 		
-		return value;
+		return values;
+	}
+	
+	private int[] readBasicOffsetTable(int tableLength) throws IOException {
+		int[] basicOffsetTable;
+		int elementsInTable;
+		
+		if (tableLength % 4 != 0) {
+			//TODO: Throw a DICOM MALFORMED exception
+		}
+		
+		elementsInTable = tableLength / 4;
+		
+		if (tableLength == ZERO_LENGTH) {
+			basicOffsetTable = new int[1];
+			basicOffsetTable[0] = 0;
+		} else {
+			basicOffsetTable = new int[elementsInTable];
+			for (int i = 0; i < tableLength; i++) {
+				basicOffsetTable[i] = readItemLength();
+			}
+		}
+		
+		return basicOffsetTable;
 	}
 	
 	private Value readSequenceValue(int elementLength) 
@@ -217,8 +250,7 @@ public class DicomFile {
 				currentPos += bis.skip(2);
 			}
 			// Reading element length
-			readBytes(temp4);
-			elementLength = DataMarshaller.getDicomUnsignedLong(temp4);
+			elementLength = readItemLength();
 			// Check if Length is implicit. If so, compute the element's length
 			if (elementLength == IMPLICIT_LENGTH) {
 				elementLength = computeLength(type);
@@ -229,6 +261,16 @@ public class DicomFile {
 			readBytes(temp2);
 			return DataMarshaller.getDicomUnsignedShort(temp2);
 		}
+	}
+	
+	private int readItemLength() throws IOException {
+		byte[] temp4 = new byte[4];
+		int elementLength;
+		
+		readBytes(temp4);
+		elementLength = (int) DataMarshaller.getDicomUnsignedLong(temp4);
+		
+		return elementLength;
 	}
 	
 	private int readValueRepresentation() throws IOException {

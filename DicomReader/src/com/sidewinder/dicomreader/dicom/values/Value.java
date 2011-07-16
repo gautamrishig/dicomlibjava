@@ -216,7 +216,7 @@ public abstract class Value {
 
 	@Override
 	public String toString() {
-		return getStringValue() + " (" + getShortTypeName() + ")";
+		return "(" + getShortTypeName() + ") " + getStringValue();
 	}
 
 	/**

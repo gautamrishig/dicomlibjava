@@ -48,7 +48,17 @@ public class DicomElement {
 
 	@Override
 	public String toString() {
-		//TODO: broken! iterate over all the stored values
-		return getTag().toString() + " = " + values.toString();
+		StringBuilder builder = new StringBuilder();
+		
+		builder.append(tag);
+		builder.append(" = ");
+		
+		if (values.size() == 1) {
+			builder.append(values.get(0));
+		} else {
+			builder.append(values);
+		}
+		
+		return builder.toString();
 	}
 }
