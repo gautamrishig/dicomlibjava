@@ -75,7 +75,7 @@ public class DicomFile {
 			tag = readTag();
 			
 			if (tag.isPixelDataTag()) {
-				System.out.println("pixel");
+				System.out.println("Pixel Data (ignoring");
 				break;
 			}
 			
@@ -95,7 +95,6 @@ public class DicomFile {
 					values.add(readSequenceValue(elementLength));
 					dicomElement = new DicomElement(tag, values, elementPos, elementLength, false);
 				} else {
-					System.out.println("Normal Element (" + currentPos + ")");
 					// Manage a normal element
 					if (elementLength > MAX_CACHED_BYTES) {
 						// Preview
@@ -181,12 +180,12 @@ public class DicomFile {
 		
 		if (Value.isFixedLength(type)) {
 			int valueLength = Value.getDicomLength(type);
+			
 			for (int iA = 0, iB = 0; iA < elementLength; iA++) {
+				tempB[iB++] = tempA[iA];
 				if (iB == valueLength) {
 					values.add(Value.createValue(type, tempB, iB));
 					iB = 0;
-				} else {
-					tempB[iB++] = tempA[iA];
 				}
 			}
 		} else {
@@ -194,6 +193,9 @@ public class DicomFile {
 				if (tempA[iA] == '\\') {
 					values.add(Value.createValue(type, tempB, iB));
 					iB = 0;
+				} else if (iA == elementLength - 1) {
+					tempB[iB++] = tempA[iA];
+					values.add(Value.createValue(type, tempB, iB));
 				} else {
 					tempB[iB++] = tempA[iA];
 				}

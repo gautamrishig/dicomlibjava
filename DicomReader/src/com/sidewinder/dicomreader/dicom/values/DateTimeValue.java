@@ -12,7 +12,7 @@ public class DateTimeValue extends Value {
 	}
 
 	@Override
-	protected Object fromByteArray(byte[] data, long contentLength)
+	protected Object fromByteArray(byte[] data, int contentLength)
 			throws IllegalArgumentException {
 		int year = 0;
 		int month = 0;

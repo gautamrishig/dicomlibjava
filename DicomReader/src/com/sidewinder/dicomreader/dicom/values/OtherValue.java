@@ -13,7 +13,7 @@ public abstract class OtherValue extends Value {
 	}
 
 	@Override
-	protected Object fromByteArray(byte[] data, long contentLength)
+	protected Object fromByteArray(byte[] data, int contentLength)
 			throws IllegalArgumentException {
 		return data;
 	}

@@ -123,7 +123,7 @@ public abstract class Value {
 		false,	// SQ Sequence of Items
 		false,	// SS Signed Short
 		false,	// ST Short Text
-		true,	// TM Time
+		false,	// TM Time
 		false,	// UI Unique Identifier (UID)
 		true,	// UL Unsigned Long
 		false,	// UN Unknown
@@ -396,7 +396,7 @@ public abstract class Value {
 	 * @throws IllegalArgumentException If the values passed as a parameter
 	 * are not suitable to perform the decode action.
 	 */
-	protected abstract Object fromByteArray(byte[] data, long contentLength)
+	protected abstract Object fromByteArray(byte[] data, int contentLength)
 			throws IllegalArgumentException;
 
 	/**

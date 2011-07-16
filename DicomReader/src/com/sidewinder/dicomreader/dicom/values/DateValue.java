@@ -11,7 +11,7 @@ public class DateValue extends Value {
 	}
 
 	@Override
-	protected Object fromByteArray(byte[] data, long contentLength)
+	protected Object fromByteArray(byte[] data, int contentLength)
 			throws IllegalArgumentException {
 		byte[] converted = new byte[getDicomLength()];
 		int ci = 0;

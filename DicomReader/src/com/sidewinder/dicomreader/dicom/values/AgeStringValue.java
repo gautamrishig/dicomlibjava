@@ -7,7 +7,7 @@ public class AgeStringValue extends Value {
 	}
 
 	@Override
-	protected Object fromByteArray(byte[] data, long contentLength)
+	protected Object fromByteArray(byte[] data, int contentLength)
 			throws IllegalArgumentException {
 		int dicomLength = getDicomLength();
 		

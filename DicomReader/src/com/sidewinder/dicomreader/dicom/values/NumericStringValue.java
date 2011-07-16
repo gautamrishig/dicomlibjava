@@ -7,7 +7,7 @@ public abstract class NumericStringValue extends Value {
 	}
 
 	@Override
-	protected Object fromByteArray(byte[] data, long contentLength)
+	protected Object fromByteArray(byte[] data, int contentLength)
 			throws IllegalArgumentException {
 		// Reject value creation if the length of the buffer exceeds
 		// the maximum Integer number

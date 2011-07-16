@@ -10,7 +10,7 @@ public class AttributeTagValue extends Value {
 	}
 
 	@Override
-	protected Object fromByteArray(byte[] data, long contentLength)
+	protected Object fromByteArray(byte[] data, int contentLength)
 			throws IllegalArgumentException {
 		
 		if (contentLength != getDicomLength() ||

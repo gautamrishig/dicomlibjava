@@ -7,7 +7,7 @@ public class ApplicationEntityValue extends Value {
 	}
 
 	@Override
-	protected String fromByteArray(byte[] data, long contentLength)
+	protected String fromByteArray(byte[] data, int contentLength)
 			throws IllegalArgumentException {
 		// Reject value creation if the length of the buffer exceeds
 		// the maximum Integer number

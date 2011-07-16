@@ -10,7 +10,7 @@ public abstract class TextValue extends Value {
 	}
 
 	@Override
-	protected Object fromByteArray(byte[] data, long contentLength)
+	protected Object fromByteArray(byte[] data, int contentLength)
 			throws IllegalArgumentException {
 		return new String(data, 0, (int) contentLength);
 	}

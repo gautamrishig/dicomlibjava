@@ -1,6 +1,6 @@
+- Restructure text output
 - Implement fragmented pixel data reading
 - Implement Dictionary and implicit VR parsing procedure
-- Implement value multiplicity
 - Unique identifier registry
-- Check preview values implementation
+- Check & complete preview values implementation
 - Check padding values (book 5)

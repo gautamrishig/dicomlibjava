@@ -11,7 +11,7 @@ public class SequenceValue extends Value {
 	}
 	
 	@Override
-	protected Object fromByteArray(byte[] data, long contentLength)
+	protected List<DicomObject> fromByteArray(byte[] data, int contentLength)
 			throws IllegalArgumentException {
 		return null;
 	}
