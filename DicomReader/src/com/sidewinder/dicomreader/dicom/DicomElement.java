@@ -1,5 +1,7 @@
 package com.sidewinder.dicomreader.dicom;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.sidewinder.dicomreader.dicom.tag.Tag;
@@ -17,13 +19,73 @@ public class DicomElement {
 	private int elementPosition;
 	private int elementLength;
 	
-	public DicomElement(Tag tag, List<Value> values,
+	private DicomElement(Tag tag, List<Value> values,
 			int elementPosition, int elementLength, boolean isPreview) {
+		
 		this.tag = tag;
 		this.values = values;
 		this.elementPosition = elementPosition;
 		this.elementLength = elementLength;
 		this.isPreview = isPreview;
+	}
+	
+	public static DicomElement createSequenceDicomElement(Tag tag,
+			List<Value> values, int elementPosition, int elementLength) {
+		
+		return new DicomElement(tag, values, elementPosition,
+				elementLength, false);
+	}
+	
+	public static DicomElement createDicomElement(Tag tag, int type,
+			byte[] data,int elementPosition, int elementLength,
+			boolean isPreview) {
+		DicomElement dicomElement = null;
+		List<Value> values;
+		
+		if (isPreview) {
+			values = new ArrayList<Value>();
+			values.add(Value.createValue(type, data,
+					DicomFile.MAX_CACHED_BYTES));
+		} else {
+			values = readValues(type, data, elementLength);
+		}
+		
+		dicomElement = new DicomElement(tag, values, elementPosition,
+				elementLength, isPreview);
+		
+		return dicomElement;
+	}
+	
+	private static List<Value> readValues(int type, byte[] data,
+			int elementLength) {
+		byte[] temp = new byte[elementLength];
+		List<Value> values = new ArrayList<Value>();
+		
+		if (Value.isFixedLength(type)) {
+			int valueLength = Value.getDicomLength(type);
+			
+			for (int iData = 0, iTemp = 0; iData < elementLength; iData++) {
+				temp[iTemp++] = data[iData];
+				if (iTemp == valueLength) {
+					values.add(Value.createValue(type, temp, iTemp));
+					iTemp = 0;
+				}
+			}
+		} else {
+			for (int iData = 0, iTemp = 0; iData < elementLength; iData++) {
+				if (data[iData] == '\\') {
+					values.add(Value.createValue(type, temp, iTemp));
+					iTemp = 0;
+				} else if (iData == elementLength - 1) {
+					temp[iTemp++] = data[iData];
+					values.add(Value.createValue(type, temp, iTemp));
+				} else {
+					temp[iTemp++] = data[iData];
+				}
+			}
+		}
+		
+		return values;
 	}
 	
 	public Tag getTag() {
