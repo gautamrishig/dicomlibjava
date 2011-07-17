@@ -11,6 +11,7 @@ import java.util.List;
 import com.sidewinder.dicomreader.dicom.tag.Tag;
 import com.sidewinder.dicomreader.dicom.value.Value;
 import com.sidewinder.dicomreader.util.DataMarshaller;
+import com.sidewinder.dicomreader.util.PositionalInputStream;
 
 public class DicomFile {
 	
@@ -24,9 +25,7 @@ public class DicomFile {
 	private File dicomFile;
 	private boolean isExplicit;
 	
-	private int currentPos = 0;
-	private FileInputStream is;
-	private BufferedInputStream bis;
+	private PositionalInputStream pis;
 	
 	public DicomFile(String file) {	
 		dicomFile = new File(file);
@@ -38,11 +37,9 @@ public class DicomFile {
 	private void readDicomFile(File file) {
 		DicomObject dicomObject;
 		try {
-			is = new FileInputStream(file);
-			bis = new BufferedInputStream(is);
+			pis = new PositionalInputStream(file);
 			// Skipping first 128 bytes and DICM string
-			bis.skip(132);
-			currentPos += 132;
+			pis.skip(132);
 			
 			dicomObject = parseDicomObject(0);
 			
@@ -70,10 +67,10 @@ public class DicomFile {
 		
 		// Computing DicomObjectLength (if caller gave this information)
 		if (dicomObjectLength != 0) {
-			endingPos = currentPos + dicomObjectLength;
+			endingPos = pis.getPosition() + dicomObjectLength;
 		}
 		
-		while (bis.available() > 0 && currentPos < endingPos) {
+		while (pis.available() > 0 && pis.getPosition() < endingPos) {
 			tag = readTag();
 			
 			if (tag.isPixelDataTag()) {
@@ -89,7 +86,7 @@ public class DicomFile {
 			} else {
 				type = readValueRepresentation();
 				elementLength = readContentLength(type);
-				elementPosition = currentPos;
+				elementPosition = pis.getPosition();
 				
 				if (type == Value.SQ) {
 					// Manage the container
@@ -102,14 +99,14 @@ public class DicomFile {
 					if (elementLength > MAX_CACHED_BYTES) {
 						// Preview
 						values = new ArrayList<Value>();
-						readBytes(temp128);
-						skip(elementLength - MAX_CACHED_BYTES);
+						pis.read(temp128);
+						pis.skip(elementLength - MAX_CACHED_BYTES);
 						dicomElement = DicomElement.createDicomElement(tag,
 								type, temp128, elementPosition,
 								elementLength, true);
 					} else {
 						// Complete
-						readBytes(temp128, elementLength);
+						pis.read(temp128, elementLength);
 						dicomElement = DicomElement.createDicomElement(tag,
 								type, temp128, elementPosition,
 								elementLength, false);
@@ -145,7 +142,7 @@ public class DicomFile {
 			// Read frames
 		} else {
 			// Native value
-			readBytes(buffer);
+			pis.read(buffer);
 			values.add(Value.createValue(type, buffer, elementLength));
 		}
 		
@@ -179,10 +176,10 @@ public class DicomFile {
 			throws IOException {
 		List<DicomObject> dicomObjectList = new ArrayList<DicomObject>();
 		int dicomObjectLength;
-		int endingPos = currentPos + elementLength;
+		int endingPos = pis.getPosition() + elementLength;
 		Tag tag;
 		
-		while (currentPos < endingPos) {
+		while (pis.getPosition() < endingPos) {
 			
 			// Read ItemTag
 			tag = readTag();
@@ -206,7 +203,7 @@ public class DicomFile {
 			if (type != Tag.ITEM_TAG) {
 				// Skipping the remaining bytes from of the
 				// Value Representation word
-				currentPos += bis.skip(2);
+				pis.skip(2);
 			}
 			// Reading element length
 			elementLength = readItemLength();
@@ -217,7 +214,7 @@ public class DicomFile {
 			//TODO: we assume 2^32/2 is the maximum length for any of the elements
 			return (int)elementLength;
 		} else {
-			readBytes(temp2);
+			pis.read(temp2);
 			return DataMarshaller.getDicomUnsignedShort(temp2);
 		}
 	}
@@ -226,7 +223,7 @@ public class DicomFile {
 		byte[] temp4 = new byte[4];
 		int elementLength;
 		
-		readBytes(temp4);
+		pis.read(temp4);
 		elementLength = (int) DataMarshaller.getDicomUnsignedLong(temp4);
 		
 		return elementLength;
@@ -235,36 +232,20 @@ public class DicomFile {
 	private int readValueRepresentation() throws IOException {
 		byte[] temp2 = new byte[2];
 		
-		readBytes(temp2);
+		pis.read(temp2);
 		return Value.getVRIdentifier(new String(temp2));
 	}
 	
 	private Tag readTag() throws IOException {
 		byte[] temp4 = new byte[4];
 		
-		readBytes(temp4);
+		pis.read(temp4);
 		return new Tag(temp4);
-	}
-	
-	private void readBytes(byte[] buffer) throws IOException {
-		currentPos += bis.read(buffer);
-	}
-	
-	private void skip(long toSkip) throws IOException {
-		long skipped;
-		
-		while (toSkip > 0) {
-			skipped = bis.skip(toSkip);
-			if (skipped < 0) {
-				throw new IOException("Error skipping bytes.");
-			}
-			
-			toSkip -= skipped;
-		}
 	}
 
 	private int computeLength(int type) throws IOException {
 		int length = 0;
+		int storedPosition = pis.getPosition();
 		
 		if (type == Value.SQ) {
 			length = computeSequenceLength();
@@ -276,8 +257,7 @@ public class DicomFile {
 		length += 4;
 		
 		// Restoring the last saved position
-		is.getChannel().position(currentPos);
-		bis = new BufferedInputStream(is);
+		pis.position(storedPosition);
 		
 		return length;
 	}
@@ -287,7 +267,7 @@ public class DicomFile {
 		int length = 0;
 		
 		do {
-			length += bis.read(temp4);
+			length += pis.read(temp4);
 		} while (!new Tag(temp4).isSequenceDelimitationTag());
 		
 		return length;
@@ -298,15 +278,10 @@ public class DicomFile {
 		int length = 0;
 		
 		do {
-			length += bis.read(temp4);
+			length += pis.read(temp4);
 		} while (!new Tag(temp4).isItemDelimitationTag());
 		
 		return length;
-	}
-
-	private void readBytes(byte[] buffer, int length)
-			throws IOException {
-		currentPos += bis.read(buffer, 0, length);
 	}
 	
 }
