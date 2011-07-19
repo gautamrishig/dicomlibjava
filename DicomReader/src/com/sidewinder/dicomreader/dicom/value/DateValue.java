@@ -32,7 +32,7 @@ public class DateValue extends Value {
 		}
 		contentLength = ci;
 		data = converted;
-		
+
 		year = Integer.parseInt(new String(data, 0, 4));
 		month = Integer.parseInt(new String(data, 4, 2));
 		dayOfMonth = Integer.parseInt(new String(data, 6, 2));

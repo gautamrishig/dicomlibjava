@@ -66,6 +66,10 @@ public class DicomElement {
 		byte[] temp = new byte[elementLength];
 		List<Value> values = new ArrayList<Value>();
 		
+		// TODO: Implement fixes for DA (dots) and TM (colons) to manage those
+		// cases that use the old ARC-NEMA representation.
+		// Use maybe a method to enclose all this nonstandard code
+		
 		if (Value.isFixedLength(type)) {
 			int valueLength = Value.getDicomLength(type);
 			
@@ -118,6 +122,8 @@ public class DicomElement {
 		StringBuilder builder = new StringBuilder();
 		
 		builder.append(tag);
+		builder.append(" - (position: " + elementPosition);
+		builder.append(", length: " + elementLength + ") ");
 		builder.append(" = ");
 		
 		if (values.size() == 1) {

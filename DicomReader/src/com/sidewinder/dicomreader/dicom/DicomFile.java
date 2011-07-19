@@ -11,6 +11,7 @@ import com.sidewinder.dicomreader.dicom.tag.Tag;
 import com.sidewinder.dicomreader.dicom.value.Value;
 import com.sidewinder.dicomreader.exception.MalformedDicomException;
 import com.sidewinder.dicomreader.util.DataMarshaller;
+import com.sidewinder.dicomreader.util.ImageVisualizer;
 import com.sidewinder.dicomreader.util.PositionalInputStream;
 
 public class DicomFile {
@@ -71,11 +72,11 @@ public class DicomFile {
 		}
 		
 		while (pis.available() > 0 && pis.getPosition() < endingPos) {
-			System.out.println(pis.getPosition());
+			elementPosition = pis.getPosition();
 			tag = readTag();
+			System.out.println(tag);
 			
 			if (tag.isPixelDataTag()) {
-				System.out.println("Pixel Data (ignoring");
 				type = readValueRepresentation();
 				pis.skip(2);
 				elementLength = readItemLength();
@@ -83,6 +84,9 @@ public class DicomFile {
 				dicomElement = DicomElement.createPixelDataElement(tag,
 						readPixelData(type, elementLength), elementPosition);
 				dicomElementList.add(dicomElement);
+				
+				//TODO: for testing purposes only
+				new ImageVisualizer(dicomElement);
 			} else if (tag.isItemDelimitationTag() ||
 					tag.isSequenceDelimitationTag()) {
 				// Skip if the tag is an ItemDelimitationTag or
@@ -91,7 +95,6 @@ public class DicomFile {
 			} else {
 				type = readValueRepresentation();
 				elementLength = readContentLength(type);
-				elementPosition = pis.getPosition();
 				
 				if (type == Value.SQ) {
 					// Manage the container
