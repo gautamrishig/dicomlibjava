@@ -1,15 +1,15 @@
 package com.sidewinder.dicomreader.dicom;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.sidewinder.dicomreader.dicom.tag.Tag;
 import com.sidewinder.dicomreader.dicom.value.Value;
+import com.sidewinder.dicomreader.exception.MalformedDicomException;
 import com.sidewinder.dicomreader.util.DataMarshaller;
 import com.sidewinder.dicomreader.util.PositionalInputStream;
 
@@ -27,14 +27,14 @@ public class DicomFile {
 	
 	private PositionalInputStream pis;
 	
-	public DicomFile(String file) {	
+	public DicomFile(String file) throws MalformedDicomException {	
 		dicomFile = new File(file);
 		if (dicomFile.exists()) {
 			readDicomFile(dicomFile);
 		}
 	}
 
-	private void readDicomFile(File file) {
+	private void readDicomFile(File file) throws MalformedDicomException {
 		DicomObject dicomObject;
 		try {
 			pis = new PositionalInputStream(file);
@@ -54,7 +54,7 @@ public class DicomFile {
 	}
 	
 	private DicomObject parseDicomObject(int dicomObjectLength)
-			throws IOException {
+			throws IOException, MalformedDicomException{
 		int type;
 		int elementPosition;
 		int elementLength;
@@ -71,17 +71,22 @@ public class DicomFile {
 		}
 		
 		while (pis.available() > 0 && pis.getPosition() < endingPos) {
+			System.out.println(pis.getPosition());
 			tag = readTag();
 			
 			if (tag.isPixelDataTag()) {
 				System.out.println("Pixel Data (ignoring");
-				break;
-			}
-			
-			// Skip if the tag is an ItemDelimitationTag or
-			// SequenceDelimitationTag
-			if (tag.isItemDelimitationTag() ||
+				type = readValueRepresentation();
+				pis.skip(2);
+				elementLength = readItemLength();
+				elementPosition = pis.getPosition();
+				dicomElement = DicomElement.createPixelDataElement(tag,
+						readPixelData(type, elementLength), elementPosition);
+				dicomElementList.add(dicomElement);
+			} else if (tag.isItemDelimitationTag() ||
 					tag.isSequenceDelimitationTag()) {
+				// Skip if the tag is an ItemDelimitationTag or
+				// SequenceDelimitationTag
 				elementLength = readContentLength(Tag.ITEM_TAG);
 			} else {
 				type = readValueRepresentation();
@@ -121,11 +126,12 @@ public class DicomFile {
 	}
 	
 	private List<Value> readPixelData(int type, int elementLength) 
-			throws IOException {
-		byte[] buffer = new byte[elementLength];
+			throws IOException, MalformedDicomException {
+		byte[] buffer;
 		List<Value> values = new ArrayList<Value>();
 		Tag tag;
 		int length;
+		int boundary;
 		int[] basicOffsetTable;
 		
 		if (elementLength == IMPLICIT_LENGTH) {
@@ -140,13 +146,63 @@ public class DicomFile {
 			basicOffsetTable = readBasicOffsetTable(length);
 			
 			// Read frames
+			for (int i = 0; i < basicOffsetTable.length; i++) {
+				if (i == basicOffsetTable.length - 1) {
+					boundary = Integer.MAX_VALUE;
+				} else {
+					boundary = basicOffsetTable[i+1];
+				}
+				
+				values.add(readFrame(type, boundary));
+			}
+			
 		} else {
+			buffer = new byte[elementLength];
 			// Native value
 			pis.read(buffer);
 			values.add(Value.createValue(type, buffer, elementLength));
 		}
 		
 		return values;
+	}
+	
+	private Value readFrame(int type, int boundary)
+			throws IOException, MalformedDicomException {
+		byte[] buffer = null;
+		byte[] tempBuffer = null;
+		Tag tag;
+		int totalLength = 0;
+		int length;
+		
+		for (tag = readTag(); pis.getPosition() < boundary &&
+				!tag.isSequenceDelimitationTag(); tag = readTag()) {
+			if (!tag.isItemDelimitationTag()) {
+				//TODO: Throw a DICOM MALFORMED exception
+			}
+			
+			length = readItemLength();
+			buffer = new byte[length];
+			if (tempBuffer != null) {
+				tempBuffer = buffer.clone();
+				buffer = new byte[totalLength + length];
+				System.arraycopy(tempBuffer, 0, buffer,
+						0, tempBuffer.length);
+			}
+			pis.read(buffer, totalLength, length);
+			totalLength += length;
+		}
+		
+		// Skip 4 bytes of length (has to be zero)
+		length = readItemLength();
+		if (length != 0) {
+			//TODO: Throw a DICOM MALFORMED exception
+		}
+		
+		if (buffer == null) {
+			throw new MalformedDicomException("No Pixel Data found.");
+		}
+		
+		return Value.createValue(type, buffer, totalLength);
 	}
 	
 	private int[] readBasicOffsetTable(int tableLength) throws IOException {
@@ -164,7 +220,7 @@ public class DicomFile {
 			basicOffsetTable[0] = 0;
 		} else {
 			basicOffsetTable = new int[elementsInTable];
-			for (int i = 0; i < tableLength; i++) {
+			for (int i = 0; i < elementsInTable; i++) {
 				basicOffsetTable[i] = readItemLength();
 			}
 		}
@@ -173,7 +229,7 @@ public class DicomFile {
 	}
 	
 	private Value readSequenceValue(int elementLength) 
-			throws IOException {
+			throws IOException, MalformedDicomException {
 		List<DicomObject> dicomObjectList = new ArrayList<DicomObject>();
 		int dicomObjectLength;
 		int endingPos = pis.getPosition() + elementLength;
@@ -184,8 +240,7 @@ public class DicomFile {
 			// Read ItemTag
 			tag = readTag();
 			if (!tag.isItemTag()) {
-				//TODO: generate an error here!!!
-				System.out.println("Error");
+				//TODO: Throw a DICOM MALFORMED exception
 			}
 			
 			dicomObjectLength = readContentLength(Tag.ITEM_TAG);

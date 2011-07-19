@@ -32,10 +32,10 @@ public class PositionalInputStream {
 		return value;
 	}
 	
-	public int read(byte[] buffer, int length) throws IOException {
+	public int read(byte[] buffer, int offset, int length) throws IOException {
 		int bytesRead;
 		
-		bytesRead = bis.read(buffer, 0, length);
+		bytesRead = bis.read(buffer, offset, length);
 		
 		if (bytesRead != -1) {
 			position += bytesRead;
@@ -46,7 +46,11 @@ public class PositionalInputStream {
 	
 	public int read(byte[] buffer) throws IOException {
 		
-		return read(buffer, buffer.length);
+		return read(buffer, 0, buffer.length);
+	}
+	
+	public int read(byte[] buffer, int length) throws IOException {
+		return read(buffer, 0, length);
 	}
 	
 	public void skip(int toSkip) throws IOException {

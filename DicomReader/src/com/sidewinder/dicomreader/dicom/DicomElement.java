@@ -36,6 +36,11 @@ public class DicomElement {
 				elementLength, false);
 	}
 	
+	public static DicomElement createPixelDataElement(Tag tag,
+			List<Value> values, int elementPosition) {
+		return new DicomElement(tag, values, elementPosition, -1, false);
+	}
+	
 	public static DicomElement createDicomElement(Tag tag, int type,
 			byte[] data,int elementPosition, int elementLength,
 			boolean isPreview) {

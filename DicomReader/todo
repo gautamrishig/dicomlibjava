@@ -1,5 +1,5 @@
-- Implement DICOM specific exception (e.g., MalformedDicom, etc)
-- Implement fragmented pixel data reading
+- Use DICOM specific exception (e.g., MalformedDicom, etc)
+- Test multi frame files and multi fragment images
 - Implement Dicom Element Registry and implicit VR parsing procedure
 - Unique identifier registry
 - Check & complete preview values implementation
