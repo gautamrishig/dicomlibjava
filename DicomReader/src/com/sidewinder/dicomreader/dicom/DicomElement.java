@@ -1,6 +1,5 @@
 package com.sidewinder.dicomreader.dicom;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -66,9 +65,17 @@ public class DicomElement {
 		byte[] temp = new byte[elementLength];
 		List<Value> values = new ArrayList<Value>();
 		
-		// TODO: Implement fixes for DA (dots) and TM (colons) to manage those
-		// cases that use the old ARC-NEMA representation.
-		// Use maybe a method to enclose all this nonstandard code
+		// Change array content to conform DICOM standard
+		switch (type) {
+		case Value.DA:
+			data = standardizeDA(type, data, elementLength);
+			elementLength = data.length;
+			break;
+		case Value.TM:
+			data = standardizeTM(type, data, elementLength);
+			elementLength = data.length;
+			break;
+		}
 		
 		if (Value.isFixedLength(type)) {
 			int valueLength = Value.getDicomLength(type);
@@ -95,6 +102,64 @@ public class DicomElement {
 		}
 		
 		return values;
+	}
+	
+	private static byte[] standardizeTM(int type, byte[] data, int elementLength) {
+		byte[] converted = null;
+		int found = 0;
+		int ci = 0;
+		
+		for (int i = 0; i < elementLength; i++) {
+			if (data[i] == ':') {
+				found++;
+			}
+		}
+		converted = new byte[elementLength - found]; 
+		
+		// Reformat the string if is in violation of current DICOM standards
+		// but conforms to old nema (YYYY.MM.DD)
+		for (int i = 0; i < elementLength; i++) {
+			if (ci > Value.getDicomLength(Value.TM)) {
+				throw new IllegalArgumentException("DA Value does not conform " +
+						"to neither ACR-NEMA nor DICOM date standards");
+			}
+			if (data[i] != ':') {
+				converted[ci++] = data[i];
+			}
+		}
+		elementLength = ci;
+		data = converted;
+		
+		return data;
+	}
+	
+	private static byte[] standardizeDA(int type, byte[] data, int elementLength) {
+		byte[] converted = null;
+		int found = 0;
+		int ci = 0;
+		
+		for (int i = 0; i < elementLength; i++) {
+			if (data[i] == '.') {
+				found++;
+			}
+		}
+		converted = new byte[elementLength - found]; 
+		
+		// Reformat the string if is in violation of current DICOM standards
+		// but conforms to old nema (YYYY.MM.DD)
+		for (int i = 0; i < elementLength; i++) {
+			if (ci > Value.getDicomLength(Value.DA)) {
+				throw new IllegalArgumentException("DA Value does not conform " +
+						"to neither ACR-NEMA nor DICOM date standards");
+			}
+			if (data[i] != '.') {
+				converted[ci++] = data[i];
+			}
+		}
+		elementLength = ci;
+		data = converted;
+		
+		return data;
 	}
 	
 	public Tag getTag() {

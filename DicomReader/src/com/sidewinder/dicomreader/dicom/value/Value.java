@@ -15,8 +15,8 @@ public abstract class Value {
 	public static final int DA = 4;
 	public static final int DS = 5;
 	public static final int DT = 6;
-	public static final int FL = 7;
-	public static final int FD = 8;
+	public static final int FD = 7;
+	public static final int FL = 8;
 	public static final int IS = 9;
 	public static final int LO = 10;
 	public static final int LT = 11;
@@ -49,8 +49,8 @@ public abstract class Value {
 		{ "DA", "Date" },
 		{ "DS", "Decimal String" },
 		{ "DT", "Date Time" },
-		{ "FL", "Floating Point Single" },
 		{ "FD", "Floating Point Double" },
+		{ "FL", "Floating Point Single" },
 		{ "IS", "Integer String" },
 		{ "LO", "Long String" },
 		{ "LT", "Long Text" },
@@ -79,8 +79,8 @@ public abstract class Value {
 		8,					// DA Date
 		16,					// DS Decimal String
 		26,					// DT Date Time
-		0,					// FL Floating Point Single
-		0,					// FD Floating Point Double
+		8,					// FD Floating Point Double
+		4,					// FL Floating Point Single
 		12,					// IS Integer String
 		64,					// LO Long String
 		10240,				// LT Long Text
@@ -89,9 +89,9 @@ public abstract class Value {
 		-1,					// OW Other Word
 		320,				// PN Person Name
 		16,					// SH Short String
-		0,					// SL Signed Long
+		4,					// SL Signed Long
 		-1,					// SQ Sequence of Items
-		0,					// SS Signed Short
+		2,					// SS Signed Short
 		1024,				// ST Short Text
 		16,					// TM Time
 		64,					// UI Unique Identifier (UID)
@@ -109,8 +109,8 @@ public abstract class Value {
 		true,	// DA Date
 		false,	// DS Decimal String
 		false,	// DT Date Time
-		false,	// FL Floating Point Single
-		false,	// FD Floating Point Double
+		true,	// FD Floating Point Double
+		true,	// FL Floating Point Single
 		false,	// IS Integer String
 		false,	// LO Long String
 		false,	// LT Long Text
@@ -119,9 +119,9 @@ public abstract class Value {
 		false,	// OW Other Word
 		false,	// PN Person Name
 		false,	// SH Short String
-		false,	// SL Signed Long
+		true,	// SL Signed Long
 		false,	// SQ Sequence of Items
-		false,	// SS Signed Short
+		true,	// SS Signed Short
 		false,	// ST Short Text
 		false,	// TM Time
 		false,	// UI Unique Identifier (UID)
@@ -268,6 +268,10 @@ public abstract class Value {
 			return new DecimalStringValue(type, data, (int)contentLength);
 		case DT:
 			return new DateTimeValue(type, data, (int)contentLength);
+		case FD:
+			return new FloatingDoubleValue(type, data, (int)contentLength);
+		case FL:
+			return new FloatingSingleValue(type, data, (int)contentLength);
 		case IS:
 			return new IntegerStringValue(type, data, (int)contentLength);
 		case LO:
@@ -284,8 +288,12 @@ public abstract class Value {
 			return new PersonNameValue(type, data, (int)contentLength);
 		case SH:
 			return new ShortStringValue(type, data, (int)contentLength);
+		case SL:
+			return new SignedLongValue(type, data, (int)contentLength);
 		case ST:
 			return new ShortTextValue(type, data, (int)contentLength);
+		case SS:
+			return new SignedShortValue(type, data, (int)contentLength);
 		case TM:
 			return new TimeValue(type, data, (int)contentLength);
 		case UI:

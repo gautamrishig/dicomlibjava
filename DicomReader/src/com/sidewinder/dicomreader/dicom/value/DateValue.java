@@ -13,25 +13,9 @@ public class DateValue extends Value {
 	@Override
 	protected Object fromByteArray(byte[] data, int contentLength)
 			throws IllegalArgumentException {
-		byte[] converted = new byte[getDicomLength()];
-		int ci = 0;
 		int year;
 		int month;
 		int dayOfMonth;
-		
-		// Reformat the string if is in violation of current DICOM standards
-		// but conforms to old nema (YYYY.MM.DD)
-		for (int i = 0; i < contentLength; i++) {
-			if (ci > getDicomLength()) {
-				throw new IllegalArgumentException("DA Value does not conform " +
-						"to neither ACR-NEMA nor DICOM date standards");
-			}
-			if (data[i] != '.') {
-				converted[ci++] = data[i];
-			}
-		}
-		contentLength = ci;
-		data = converted;
 
 		year = Integer.parseInt(new String(data, 0, 4));
 		month = Integer.parseInt(new String(data, 4, 2));

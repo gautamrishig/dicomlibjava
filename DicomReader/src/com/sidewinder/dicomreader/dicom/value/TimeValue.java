@@ -15,8 +15,6 @@ public class TimeValue extends Value {
 	@Override
 	protected Object fromByteArray(byte[] data, int contentLength)
 			throws IllegalArgumentException {
-		byte[] converted = new byte[getDicomLength()];
-		int ci = 0;
 		int hourOfDay = 0;
 		int minute = 0;
 		int second = 0;
@@ -25,20 +23,6 @@ public class TimeValue extends Value {
 			throw new IllegalArgumentException("TM values must be at " +
 					"least " + MINIMUM_TM_LENGTH + " bytes long.");
 		}
-		
-		// Reformat the string if is in violation of current DICOM standards
-		// but conforms to old nema (HH:MM:SS)
-		for (int i = 0; i < contentLength; i++) {
-			if (ci > getDicomLength()) {
-				throw new IllegalArgumentException("TM value does not conform " +
-						"to neither ACR-NEMA nor DICOM standard.");
-			}
-			if (data[i] != ':') {
-				converted[ci++] = data[i];
-			}
-		}
-		contentLength = ci;
-		data = converted;
 		
 		if (contentLength >= 2) {
 			hourOfDay = Integer.parseInt(new String(data, 0, 2));
