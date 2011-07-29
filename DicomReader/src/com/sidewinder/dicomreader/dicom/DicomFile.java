@@ -213,31 +213,6 @@ public class DicomFile {
 			
 		} while (pis.getPosition() < boundary);
 		
-//		for (tag = readTag(); pis.getPosition() < boundary &&
-//				!tag.isSequenceDelimitationTag(); tag = readTag()) {
-//			if (!tag.isItemDelimitationTag()) {
-//				throw new MalformedDicomException("Item Delimitation Tag expected " +
-//						" while reading Frame at position " + pis.getPosition());
-//			}
-//			
-//			length = readItemLength();
-//			buffer = new byte[length];
-//			if (tempBuffer != null) {
-//				tempBuffer = buffer.clone();
-//				buffer = new byte[totalLength + length];
-//				System.arraycopy(tempBuffer, 0, buffer,
-//						0, tempBuffer.length);
-//			}
-//			pis.read(buffer, totalLength, length);
-//			totalLength += length;
-//		}
-		
-		// Skip 4 bytes of length (has to be zero)
-//		length = readItemLength();
-//		if (length != 0) {
-//			//TODO: Throw a DICOM MALFORMED exception
-//		}
-		
 		if (buffer == null) {
 			throw new MalformedDicomException("No Pixel Data found.");
 		}
