@@ -22,48 +22,36 @@ public class DicomFileReader {
 	private static final int ZERO_LENGTH = 0x00000000 & 0xFFFFFFFF;
 		
 	protected static final int MAX_CACHED_BYTES = 128;
-	
-	private DicomObject dicomObject;
-	
-	private File dicomFile;
-	private boolean isExplicit;
-	
-	private PositionalInputStream pis;
-	
-	public DicomFileReader(String file) throws MalformedDicomException {	
+
+	public static DicomFileContext readDicomFile(String file)
+			throws MalformedDicomException {
+		File dicomFile;
+		DicomFileContext context = null;
+		
 		dicomFile = new File(file);
 		if (dicomFile.exists()) {
-			readDicomFile(dicomFile);
-		}
-	}
+			try {
+				context = new DicomFileContext(dicomFile);
+				
+				// Skipping first 128 bytes and DICM string
+				context.getPis().skip(132);
+				
+				// Parsing the file
+				context.setDicomObject(parseDicomObject(0, context));
 
-	private void readDicomFile(File file) throws MalformedDicomException {
-		DicomObject dicomObject;
-		String outputFilename;
-		try {
-			pis = new PositionalInputStream(file);
-			// Skipping first 128 bytes and DICM string
-			pis.skip(132);
-			
-			dicomObject = parseDicomObject(0);
-			
-			outputFilename = file.getAbsolutePath() + ".txt";
-			System.out.println("Exporting parse output to file " + outputFilename);
-			FileOutputStream fos = new FileOutputStream(outputFilename);
-			OutputStreamWriter osw = new OutputStreamWriter(fos);
-			osw.write(dicomObject.toString());
-			osw.close();
-			fos.close();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
 		}
+		
+		return context;
 	}
 	
-	private DicomObject parseDicomObject(int dicomObjectLength)
-			throws IOException, MalformedDicomException{
+	private static DicomObject parseDicomObject(int dicomObjectLength,
+			DicomFileContext context) throws IOException, MalformedDicomException{
 		int type;
 		int elementPosition;
 		int elementLength;
@@ -73,6 +61,7 @@ public class DicomFileReader {
 		List<Value> values;
 		DicomElement dicomElement = null;
 		List<DicomElement> dicomElementList = new ArrayList<DicomElement>();
+		PositionalInputStream pis = context.getPis();
 		
 		// Computing DicomObjectLength (if caller gave this information)
 		if (dicomObjectLength != 0) {
@@ -81,36 +70,30 @@ public class DicomFileReader {
 		
 		while (pis.available() > 0 && pis.getPosition() < endingPos) {
 			elementPosition = pis.getPosition();
-			tag = readTag();
+			tag = readTag(context);
 			System.out.println(tag);
 			
 			if (tag.isPixelDataTag()) {
-				type = readValueRepresentation();
+				type = readValueRepresentation(context);
 				pis.skip(2);
-				elementLength = readItemLength();
+				elementLength = readItemLength(context);
 				elementPosition = pis.getPosition();
 				dicomElement = DicomElement.createPixelDataElement(tag,
-						readPixelData(type, elementLength), elementPosition);
+						readPixelData(type, elementLength, context), elementPosition);
 				dicomElementList.add(dicomElement);
-				
-				//TODO: for testing purposes only
-//				new ImageVisualizer(dicomElement);
-				FileOutputStream fos = new FileOutputStream("/Users/sidewinder/Desktop/dicom/out.jpg");
-				fos.write((byte[])dicomElement.getValue().get(0).getValue());
-				fos.close();
 			} else if (tag.isItemDelimitationTag() ||
 					tag.isSequenceDelimitationTag()) {
 				// Skip if the tag is an ItemDelimitationTag or
 				// SequenceDelimitationTag
-				elementLength = readContentLength(Tag.ITEM_TAG);
+				elementLength = readContentLength(Tag.ITEM_TAG, context);
 			} else {
-				type = readValueRepresentation();
-				elementLength = readContentLength(type);
+				type = readValueRepresentation(context);
+				elementLength = readContentLength(type, context);
 				
 				if (type == Value.SQ) {
 					// Manage the container
 					values = new ArrayList<Value>();
-					values.add(readSequenceValue(elementLength));
+					values.add(readSequenceValue(elementLength, context));
 					dicomElement = DicomElement.createSequenceDicomElement(tag,
 							values, elementPosition, elementLength);
 				} else {
@@ -139,8 +122,8 @@ public class DicomFileReader {
 		return new DicomObject(dicomElementList);
 	}
 	
-	private List<Value> readPixelData(int type, int elementLength) 
-			throws IOException, MalformedDicomException {
+	private static List<Value> readPixelData(int type, int elementLength,
+			DicomFileContext context) throws IOException, MalformedDicomException {
 		byte[] buffer;
 		List<Value> values = new ArrayList<Value>();
 		Tag tag;
@@ -152,12 +135,12 @@ public class DicomFileReader {
 			// Encapsulated value
 			
 			// Reading Basic Offset Table Item
-			tag = readTag();
+			tag = readTag(context);
 			if (!tag.isItemTag()) {
 				//TODO: throw an error here!
 			}
-			length = readItemLength();
-			basicOffsetTable = readBasicOffsetTable(length);
+			length = readItemLength(context);
+			basicOffsetTable = readBasicOffsetTable(length, context);
 			
 			// Read frames
 			for (int i = 0; i < basicOffsetTable.length; i++) {
@@ -167,31 +150,33 @@ public class DicomFileReader {
 					boundary = basicOffsetTable[i+1];
 				}
 				
-				values.add(readFrame(type, boundary));
+				values.add(readFrame(type, boundary, context));
 			}
 			
 		} else {
 			buffer = new byte[elementLength];
 			// Native value
-			pis.read(buffer);
+			context.getPis().read(buffer);
 			values.add(Value.createValue(type, buffer, elementLength));
 		}
 		
 		return values;
 	}
 	
-	private Value readFrame(int type, int boundary)
+	private static Value readFrame(int type, int boundary,
+			DicomFileContext context)
 			throws IOException, MalformedDicomException {
 		byte[] buffer = null;
 		byte[] tempBuffer = null;
 		Tag tag;
 		int totalLength = 0;
 		int length;
+		PositionalInputStream pis = context.getPis();
 		
 		do {
-			tag = readTag();
+			tag = readTag(context);
 			if (tag.isSequenceDelimitationTag()) {
-				length = readItemLength();
+				length = readItemLength(context);
 				break;
 			}
 			
@@ -200,7 +185,7 @@ public class DicomFileReader {
 						" while reading Frame at position " + pis.getPosition()); 
 			}
 			
-			length = readItemLength();
+			length = readItemLength(context);
 			buffer = new byte[length];
 			if (tempBuffer != null) {
 				tempBuffer = buffer.clone();
@@ -220,7 +205,8 @@ public class DicomFileReader {
 		return Value.createValue(type, buffer, totalLength);
 	}
 	
-	private int[] readBasicOffsetTable(int tableLength) throws IOException {
+	private static int[] readBasicOffsetTable(int tableLength,
+			DicomFileContext context) throws IOException {
 		int[] basicOffsetTable;
 		int elementsInTable;
 		int imageStart;
@@ -237,11 +223,11 @@ public class DicomFileReader {
 		} else {
 			basicOffsetTable = new int[elementsInTable];
 			for (int i = 0; i < elementsInTable; i++) {
-				basicOffsetTable[i] = readItemLength();
+				basicOffsetTable[i] = readItemLength(context);
 			}
 		}
 		
-		imageStart = pis.getPosition();
+		imageStart = context.getPis().getPosition();
 		for (int i = 0; i < basicOffsetTable.length; i++) {
 			basicOffsetTable[i] += imageStart; 
 		}
@@ -249,31 +235,34 @@ public class DicomFileReader {
 		return basicOffsetTable;
 	}
 	
-	private Value readSequenceValue(int elementLength) 
+	private static Value readSequenceValue(int elementLength, DicomFileContext context) 
 			throws IOException, MalformedDicomException {
 		List<DicomObject> dicomObjectList = new ArrayList<DicomObject>();
 		int dicomObjectLength;
+		PositionalInputStream pis = context.getPis();
 		int endingPos = pis.getPosition() + elementLength;
 		Tag tag;
 		
 		while (pis.getPosition() < endingPos) {
 			
 			// Read ItemTag
-			tag = readTag();
+			tag = readTag(context);
 			if (!tag.isItemTag()) {
 				//TODO: Throw a DICOM MALFORMED exception
 			}
 			
-			dicomObjectLength = readContentLength(Tag.ITEM_TAG);
-			dicomObjectList.add(parseDicomObject(dicomObjectLength));
+			dicomObjectLength = readContentLength(Tag.ITEM_TAG, context);
+			dicomObjectList.add(parseDicomObject(dicomObjectLength, context));
 		}
 		
 		return Value.createContainerValue(dicomObjectList, elementLength);
 	}
 	
-	private int readContentLength(int type) throws IOException {
+	private static int readContentLength(int type, DicomFileContext context)
+			throws IOException {
 		byte[] temp2 = new byte[2];
 		long elementLength;
+		PositionalInputStream pis = context.getPis();
 		
 		if (Value.has4BytesLength(type) || type == Tag.ITEM_TAG) {
 			if (type != Tag.ITEM_TAG) {
@@ -282,10 +271,10 @@ public class DicomFileReader {
 				pis.skip(2);
 			}
 			// Reading element length
-			elementLength = readItemLength();
+			elementLength = readItemLength(context);
 			// Check if Length is implicit. If so, compute the element's length
 			if (elementLength == IMPLICIT_LENGTH) {
-				elementLength = computeLength(type);
+				elementLength = computeLength(type, context);
 			}
 			//TODO: we assume 2^32/2 is the maximum length for any of the elements
 			return (int)elementLength;
@@ -295,38 +284,42 @@ public class DicomFileReader {
 		}
 	}
 	
-	private int readItemLength() throws IOException {
+	private static int readItemLength(DicomFileContext context)
+			throws IOException {
 		byte[] temp4 = new byte[4];
 		int elementLength;
 		
-		pis.read(temp4);
+		context.getPis().read(temp4);
 		elementLength = (int) DataMarshaller.getDicomUnsignedLong(temp4);
 		
 		return elementLength;
 	}
 	
-	private int readValueRepresentation() throws IOException {
+	private static int readValueRepresentation(DicomFileContext context)
+			throws IOException {
 		byte[] temp2 = new byte[2];
 		
-		pis.read(temp2);
+		context.getPis().read(temp2);
 		return Value.getVRIdentifier(new String(temp2));
 	}
 	
-	private Tag readTag() throws IOException {
+	private static Tag readTag(DicomFileContext context) throws IOException {
 		byte[] temp4 = new byte[4];
 		
-		pis.read(temp4);
+		context.getPis().read(temp4);
 		return new Tag(temp4);
 	}
 
-	private int computeLength(int type) throws IOException {
+	private static int computeLength(int type, DicomFileContext context)
+			throws IOException {
 		int length = 0;
+		PositionalInputStream pis = context.getPis();
 		int storedPosition = pis.getPosition();
 		
 		if (type == Value.SQ) {
-			length = computeSequenceLength();
+			length = computeSequenceLength(context);
 		} else {
-			length = computeDicomObjectLength();
+			length = computeDicomObjectLength(context);
 		}
 		
 		// Accounting for the ending tag and 0x00000000 length
@@ -338,23 +331,25 @@ public class DicomFileReader {
 		return length;
 	}
 	
-	private int computeSequenceLength() throws IOException {
+	private static int computeSequenceLength(DicomFileContext context)
+			throws IOException {
 		byte[] temp4 = new byte[4];
 		int length = 0;
 		
 		do {
-			length += pis.read(temp4);
+			length += context.getPis().read(temp4);
 		} while (!new Tag(temp4).isSequenceDelimitationTag());
 		
 		return length;
 	}
 	
-	private int computeDicomObjectLength() throws IOException {
+	private static int computeDicomObjectLength(DicomFileContext context)
+			throws IOException {
 		byte[] temp4 = new byte[4];
 		int length = 0;
 		
 		do {
-			length += pis.read(temp4);
+			length += context.getPis().read(temp4);
 		} while (!new Tag(temp4).isItemDelimitationTag());
 		
 		return length;
